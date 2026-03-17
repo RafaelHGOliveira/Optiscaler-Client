@@ -1,0 +1,26 @@
+using System.Windows;
+
+namespace OptiscalerManager;
+
+public partial class ConfirmDialog : Window
+{
+    public ConfirmDialog(string title, string message)
+    {
+        InitializeComponent();
+        this.Title = title;
+        TxtTitle.Text = title;
+        TxtMessage.Text = message;
+    }
+
+    private void BtnCancel_Click(object sender, RoutedEventArgs e)
+    {
+        this.DialogResult = false;
+        this.Close();
+    }
+
+    private void BtnConfirm_Click(object sender, RoutedEventArgs e)
+    {
+        this.DialogResult = true;
+        this.Close();
+    }
+}

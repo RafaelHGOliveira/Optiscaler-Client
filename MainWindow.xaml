@@ -1,0 +1,697 @@
+﻿<Window x:Class="OptiscalerManager.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:OptiscalerManager"
+        xmlns:converters="clr-namespace:OptiscalerManager.Converters"
+        mc:Ignorable="d"
+        Title="{DynamicResource TxtAppTitle}"
+        Height="720" Width="1280"
+        MinHeight="520" MinWidth="760"
+        Background="{StaticResource BrBgBase}"
+        Foreground="{StaticResource BrTextPrimary}"
+        FontFamily="{StaticResource FontPrimary}"
+        Icon="assets/icon.png"
+        WindowStyle="SingleBorderWindow">
+
+    <Window.Resources>
+        <converters:NullToVisibilityConverter  x:Key="NullToVisibilityConverter"/>
+        <converters:BoolToVisibilityConverter  x:Key="BoolToVisibilityConverter"/>
+
+        <Style x:Key="NavBtnStyle" TargetType="RadioButton">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{StaticResource BrTextSecondary}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Height" Value="48"/>
+            <Setter Property="Width" Value="48"/>
+            <Setter Property="Margin" Value="0,4"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets, Segoe UI"/>
+            <Setter Property="FontSize" Value="20"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="8">
+                            <Grid>
+                                <!-- selection indicator -->
+                                <Border x:Name="Indicator" Width="3" Height="24" HorizontalAlignment="Left" VerticalAlignment="Center" Background="{StaticResource BrAccent}" Visibility="Collapsed" CornerRadius="1.5" Margin="2,0,0,0"/>
+                                <TextBlock Text="{TemplateBinding Content}" FontFamily="{TemplateBinding FontFamily}" FontSize="{TemplateBinding FontSize}" Foreground="{TemplateBinding Foreground}" HorizontalAlignment="Center" VerticalAlignment="Center" ToolTip="{TemplateBinding ToolTip}"/>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Indicator" Property="Visibility" Value="Visible"/>
+                                <Setter Property="Foreground" Value="{StaticResource BrAccent}"/>
+                                <Setter Property="Background" Value="{StaticResource BrBgElevated}"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="{StaticResource BrTextPrimary}"/>
+                                <Setter Property="Background" Value="{StaticResource BrBgCard}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="68"/> <!-- Sidebar -->
+            <ColumnDefinition Width="*"/>  <!-- Main Content Area -->
+        </Grid.ColumnDefinitions>
+
+        <!-- SIDEBAR -->
+        <Border Grid.Column="0" Background="{StaticResource BrBgDeep}" BorderBrush="{StaticResource BrBorderSubtle}" BorderThickness="0,0,1,0" Panel.ZIndex="10">
+            <Grid Margin="0,16">
+                <!-- Top actions: Logo + Games -->
+                <StackPanel VerticalAlignment="Top" HorizontalAlignment="Center">
+                    <Image Source="assets/icon.png" Width="32" Height="32" Margin="0,0,0,24" RenderOptions.BitmapScalingMode="HighQuality"/>
+                    
+                    <RadioButton x:Name="NavGames" GroupName="SidebarNav" Style="{StaticResource NavBtnStyle}" Content="&#xE7FC;" ToolTip="Games" IsChecked="True" Click="NavGames_Click"/>
+                </StackPanel>
+
+                <!-- Bottom actions: Settings, Help -->
+                <StackPanel VerticalAlignment="Bottom" HorizontalAlignment="Center">
+                    <RadioButton x:Name="NavHelp" GroupName="SidebarNav" Style="{StaticResource NavBtnStyle}" Content="&#xE897;" ToolTip="Help" Click="NavHelp_Click"/>
+                    <RadioButton x:Name="NavSettings" GroupName="SidebarNav" Style="{StaticResource NavBtnStyle}" Content="&#xE713;" ToolTip="Settings" Click="NavSettings_Click"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- MAIN CONTENT AREA -->
+        <Grid Grid.Column="1">
+             
+             <!-- ════════════════════════════════════════════════════════
+                  1. GAMES VIEW
+                  ════════════════════════════════════════════════════════ -->
+             <Grid x:Name="ViewGames" Visibility="Visible">
+                 <Grid.RowDefinitions>
+                     <RowDefinition Height="Auto"/>
+                     <RowDefinition Height="*"/>
+                     <RowDefinition Height="Auto"/>
+                 </Grid.RowDefinitions>
+                 
+                 <!-- Header -->
+                 <Border Grid.Row="0"
+                         Background="{StaticResource BrBgDeep}"
+                         BorderBrush="{StaticResource BrBorderSubtle}"
+                         BorderThickness="0,0,0,1"
+                         Padding="24,16">
+                     <Grid>
+                         <Grid.ColumnDefinitions>
+                             <ColumnDefinition Width="Auto"/>
+                             <ColumnDefinition Width="*"/>
+                             <ColumnDefinition Width="Auto"/>
+                         </Grid.ColumnDefinitions>
+                         
+                         <!-- Left: Title + action buttons -->
+                         <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                             <!-- Action buttons -->
+                             <Button x:Name="BtnScan"
+                                     Content="{DynamicResource TxtBtnScan}"
+                                     Style="{StaticResource BtnBase}"
+                                     Padding="14,7"
+                                     Margin="0,0,10,0"
+                                     Click="BtnScan_Click"/>
+         
+                             <Button x:Name="BtnAddManual"
+                                     Content="{DynamicResource TxtBtnAddManual}"
+                                     Style="{StaticResource BtnBase}"
+                                     Padding="14,7"
+                                     Click="BtnAddManual_Click"/>
+                         </StackPanel>
+
+                         <!-- Middle: Search Bar -->
+                         <Grid Grid.Column="1" Margin="32,0" MaxWidth="400" HorizontalAlignment="Stretch" VerticalAlignment="Center">
+                             <TextBox x:Name="TxtSearch"
+                                      Padding="32,7,12,7"
+                                      Background="{StaticResource BrBgSurface}"
+                                      Foreground="{StaticResource BrTextPrimary}"
+                                      BorderBrush="{StaticResource BrBorderSubtle}"
+                                      BorderThickness="1"
+                                      VerticalAlignment="Center"
+                                      VerticalContentAlignment="Center"
+                                      GotFocus="TxtSearch_GotFocus"
+                                      LostFocus="TxtSearch_LostFocus"
+                                      TextChanged="TxtSearch_TextChanged">
+                                 <TextBox.Resources>
+                                     <Style TargetType="Border">
+                                         <Setter Property="CornerRadius" Value="{StaticResource RadiusMedium}"/>
+                                     </Style>
+                                 </TextBox.Resources>
+                             </TextBox>
+                             <TextBlock IsHitTestVisible="False"
+                                        Text="&#xE721;"
+                                        FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets, Segoe UI"
+                                        Foreground="{StaticResource BrTextSecondary}"
+                                        VerticalAlignment="Center"
+                                        HorizontalAlignment="Left"
+                                        Margin="12,0,0,0"
+                                        FontSize="14"/>
+                             <TextBlock x:Name="TxtSearchPlaceholder"
+                                        IsHitTestVisible="False"
+                                        Text="{DynamicResource TxtSearchGames}"
+                                        Foreground="{StaticResource BrTextSecondary}"
+                                        VerticalAlignment="Center"
+                                        HorizontalAlignment="Left"
+                                        Margin="34,0,0,0"/>
+                         </Grid>
+
+                         <!-- Right: GPU chip + Nukem updates -->
+                         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Right">
+                             <Border Background="{StaticResource BrBgSurface}"
+                                     BorderBrush="{StaticResource BrBorderSubtle}"
+                                     BorderThickness="1"
+                                     CornerRadius="{StaticResource RadiusMedium}"
+                                     Padding="12,5" Margin="0,0,10,0">
+                                 <TextBlock x:Name="TxtGpuInfo"
+                                            Text="{DynamicResource TxtDefaultGpu}"
+                                            FontSize="{StaticResource FontSizeCaption}"
+                                            Foreground="{StaticResource BrTextSecondary}"
+                                            VerticalAlignment="Center"/>
+                             </Border>
+                         </StackPanel>
+                     </Grid>
+                 </Border>
+
+                 <!-- Game List -->
+                 <ScrollViewer x:Name="GameListScrollViewer"
+                               Grid.Row="1"
+                               VerticalScrollBarVisibility="Auto"
+                               HorizontalScrollBarVisibility="Disabled"
+                               Padding="24,20,18,20">
+                     <ListBox x:Name="LstGames"
+                              Background="Transparent"
+                              BorderThickness="0"
+                              ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                              PreviewMouseWheel="LstGames_PreviewMouseWheel">
+                         <ListBox.ItemContainerStyle>
+                             <Style TargetType="ListBoxItem">
+                                 <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                 <Setter Property="Padding"     Value="0"/>
+                                 <Setter Property="Margin"      Value="0,0,0,10"/>
+                                 <Setter Property="Background"  Value="Transparent"/>
+                                 <Setter Property="BorderThickness" Value="0"/>
+                                 <Setter Property="Template">
+                                     <Setter.Value>
+                                         <ControlTemplate TargetType="ListBoxItem">
+                                             <ContentPresenter/>
+                                         </ControlTemplate>
+                                     </Setter.Value>
+                                 </Setter>
+                             </Style>
+                         </ListBox.ItemContainerStyle>
+         
+                         <ListBox.ItemTemplate>
+                             <DataTemplate>
+                                 <!-- Game Card -->
+                                 <Border Background="{StaticResource BrBgCard}"
+                                         BorderBrush="{StaticResource BrBorderSubtle}"
+                                         BorderThickness="1"
+                                         CornerRadius="{StaticResource RadiusLarge}"
+                                         Padding="20,16">
+                                     <Border.Style>
+                                         <Style TargetType="Border">
+                                             <Style.Triggers>
+                                                 <Trigger Property="IsMouseOver" Value="True">
+                                                     <Setter Property="BorderBrush" Value="{StaticResource BrBorderDefault}"/>
+                                                     <Setter Property="Background"  Value="{StaticResource BrBgElevated}"/>
+                                                 </Trigger>
+                                             </Style.Triggers>
+                                         </Style>
+                                     </Border.Style>
+         
+                                         <Grid>
+                                             <Grid.ColumnDefinitions>
+                                                 <ColumnDefinition Width="Auto"/> <!-- Cover Art -->
+                                                 <ColumnDefinition Width="*"/>
+                                                 <ColumnDefinition Width="Auto"/>
+                                             </Grid.ColumnDefinitions>
+         
+                                             <!-- Cover Art -->
+                                             <Border Grid.Column="0" Width="80" Height="120" Margin="0,0,20,0"
+                                                     CornerRadius="4"
+                                                     Background="{StaticResource BrBgElevated}"
+                                                     BorderBrush="{StaticResource BrBorderSubtle}"
+                                                     BorderThickness="1">
+                                                 <Border.Clip>
+                                                     <RectangleGeometry RadiusX="4" RadiusY="4" Rect="0,0,80,120"/>
+                                                 </Border.Clip>
+                                                 <Grid>
+                                                     <!-- Fallback Icon -->
+                                                     <TextBlock Text="🎮" 
+                                                                FontSize="36" 
+                                                                HorizontalAlignment="Center" 
+                                                                VerticalAlignment="Center" 
+                                                                Foreground="{StaticResource BrTextSecondary}"
+                                                                Opacity="0.5"/>
+                                                     
+                                                     <!-- Image (overlays fallback if valid) -->
+                                                     <Image Source="{Binding CoverImageUrl}" Stretch="UniformToFill" />
+                                                 </Grid>
+                                             </Border>
+         
+                                             <!-- Game info -->
+                                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
+         
+                                             <!-- Name and Platform -->
+                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,3">
+                                                 <!-- Platform Badge -->
+                                                 <Border Background="{StaticResource BrBgSurface}"
+                                                         BorderBrush="{StaticResource BrBorderSubtle}"
+                                                         BorderThickness="1"
+                                                         CornerRadius="4"
+                                                         Padding="6,2" Margin="0,0,8,0"
+                                                         VerticalAlignment="Center">
+                                                     <TextBlock Text="{Binding Platform}"
+                                                                Foreground="{StaticResource BrTextSecondary}"
+                                                                FontSize="10"
+                                                                FontWeight="SemiBold"/>
+                                                 </Border>
+         
+                                                 <!-- Name -->
+                                                 <TextBlock Text="{Binding Name}"
+                                                            FontSize="{StaticResource FontSizeSubtitle}"
+                                                            FontWeight="SemiBold"
+                                                            Foreground="{StaticResource BrTextPrimary}"
+                                                            VerticalAlignment="Center"/>
+                                             </StackPanel>
+         
+                                             <!-- Badges row -->
+                                             <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+         
+                                                 <!-- DLSS badge -->
+                                                 <Border Background="#1A2E1A"
+                                                         BorderBrush="#2D5A2D"
+                                                         BorderThickness="1"
+                                                         CornerRadius="6"
+                                                         Padding="10,3" Margin="0,0,6,0"
+                                                         Visibility="{Binding DlssVersion, Converter={StaticResource NullToVisibilityConverter}}">
+                                                     <TextBlock Text="DLSS"
+                                                                Foreground="#7FD481"
+                                                                FontSize="{StaticResource FontSizeCaption}"
+                                                                FontWeight="SemiBold"/>
+                                                 </Border>
+         
+                                                 <!-- FSR badge -->
+                                                 <Border Background="#2E1A1A"
+                                                         BorderBrush="#5A2D2D"
+                                                         BorderThickness="1"
+                                                         CornerRadius="6"
+                                                         Padding="10,3" Margin="0,0,6,0"
+                                                         Visibility="{Binding FsrVersion, Converter={StaticResource NullToVisibilityConverter}}">
+                                                     <TextBlock Text="FSR"
+                                                                Foreground="#E07070"
+                                                                FontSize="{StaticResource FontSizeCaption}"
+                                                                FontWeight="SemiBold"/>
+                                                 </Border>
+         
+                                                 <!-- XeSS badge -->
+                                                 <Border Background="#1A1E2E"
+                                                         BorderBrush="#2D3A5A"
+                                                         BorderThickness="1"
+                                                         CornerRadius="6"
+                                                         Padding="10,3" Margin="0,0,6,0"
+                                                         Visibility="{Binding XessVersion, Converter={StaticResource NullToVisibilityConverter}}">
+                                                     <TextBlock Text="XeSS"
+                                                                Foreground="#7080E0"
+                                                                FontSize="{StaticResource FontSizeCaption}"
+                                                                FontWeight="SemiBold"/>
+                                                 </Border>
+         
+                                                 <!-- OptiScaler badge (violet) -->
+                                                 <Border Background="#1E1530"
+                                                         BorderBrush="{StaticResource BrAccent}"
+                                                         BorderThickness="1"
+                                                         CornerRadius="6"
+                                                         Padding="10,3" Margin="0,0,6,0"
+                                                         Visibility="{Binding IsOptiscalerInstalled, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                     <StackPanel Orientation="Horizontal">
+                                                         <TextBlock Text="✦ OptiScaler"
+                                                                    Foreground="{StaticResource BrAccent}"
+                                                                    FontSize="{StaticResource FontSizeCaption}"
+                                                                    FontWeight="Bold"/>
+                                                         <TextBlock Text="{Binding OptiscalerVersion, StringFormat=' {0}'}"
+                                                                    Foreground="{StaticResource BrAccent}"
+                                                                    FontSize="{StaticResource FontSizeCaption}"
+                                                                    FontWeight="SemiBold"
+                                                                    Visibility="{Binding OptiscalerVersion, Converter={StaticResource NullToVisibilityConverter}}"/>
+                                                     </StackPanel>
+                                                 </Border>
+         
+                                             </StackPanel>
+                                         </StackPanel>
+         
+                                         <!-- Actions -->
+                                         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                             <Button Content="&#xE74D;"
+                                                     FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets, Segoe UI"
+                                                     Foreground="{StaticResource BrTextSecondary}"
+                                                     Background="Transparent"
+                                                     BorderThickness="0"
+                                                     FontSize="16"
+                                                     Padding="10"
+                                                     Margin="0,0,10,0"
+                                                     ToolTip="{DynamicResource TxtRemoveGameTip}"
+                                                     Visibility="{Binding IsManual, Converter={StaticResource BoolToVisibilityConverter}}"
+                                                     Click="BtnRemoveGame_Click">
+                                                 <Button.Style>
+                                                     <Style TargetType="Button">
+                                                         <Setter Property="Cursor" Value="Hand"/>
+                                                         <Setter Property="Template">
+                                                             <Setter.Value>
+                                                                 <ControlTemplate TargetType="Button">
+                                                                     <Border Background="{TemplateBinding Background}" CornerRadius="4">
+                                                                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                     </Border>
+                                                                 </ControlTemplate>
+                                                             </Setter.Value>
+                                                         </Setter>
+                                                         <Style.Triggers>
+                                                             <Trigger Property="IsMouseOver" Value="True">
+                                                                 <Setter Property="Background" Value="#1AFFFFFF"/>
+                                                                 <Setter Property="Foreground" Value="{StaticResource BrAccentWarm}"/>
+                                                             </Trigger>
+                                                         </Style.Triggers>
+                                                     </Style>
+                                                 </Button.Style>
+                                             </Button>
+                                             <Button Content="{DynamicResource TxtManageGame}"
+                                                     Style="{StaticResource BtnBase}"
+                                                     Padding="20,8"
+                                                     VerticalAlignment="Center"
+                                                     Click="BtnManage_Click"/>
+                                         </StackPanel>
+                                     </Grid>
+                                 </Border>
+                             </DataTemplate>
+                         </ListBox.ItemTemplate>
+                     </ListBox>
+                 </ScrollViewer>
+
+                 <!-- Status Bar -->
+                 <Border Grid.Row="2"
+                         Background="{StaticResource BrBgDeep}"
+                         BorderBrush="{StaticResource BrBorderSubtle}"
+                         BorderThickness="0,1,0,0"
+                         Padding="24,8">
+                     <TextBlock x:Name="TxtStatus"
+                                Text="{DynamicResource TxtStatusReady}"
+                                FontSize="{StaticResource FontSizeCaption}"
+                                Foreground="{StaticResource BrTextSecondary}"/>
+                 </Border>
+             </Grid> <!-- ViewGames -->
+
+             <!-- ════════════════════════════════════════════════════════
+                  2. SETTINGS VIEW
+                  ════════════════════════════════════════════════════════ -->
+             <Grid x:Name="ViewSettings" Visibility="Collapsed">
+                 <Grid.RowDefinitions>
+                     <RowDefinition Height="Auto"/>
+                     <RowDefinition Height="*"/>
+                 </Grid.RowDefinitions>
+                 
+                 <Border Grid.Row="0" Background="{StaticResource BrBgDeep}" BorderBrush="{StaticResource BrBorderSubtle}" BorderThickness="0,0,0,1" Padding="24,18">
+                     <StackPanel>
+                         <TextBlock Text="{DynamicResource TxtSettingsTitle}" FontSize="20" FontWeight="SemiBold" Foreground="{StaticResource BrTextPrimary}"/>
+                         <TextBlock Text="{DynamicResource TxtSettingsDesc}" FontSize="{StaticResource FontSizeCaption}" Foreground="{StaticResource BrTextSecondary}" Margin="0,3,0,0"/>
+                     </StackPanel>
+                 </Border>
+         
+                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0" >
+                     <StackPanel Margin="24">
+                     
+                     <TextBlock Text="{DynamicResource TxtAppPrefs}"
+                                Foreground="{StaticResource BrTextSecondary}"
+                                FontWeight="SemiBold"
+                                Margin="0,0,0,12"/>
+         
+                     <!-- Cache Management -->
+                     <Border Background="{StaticResource BrBgCard}"
+                             BorderBrush="{StaticResource BrBorderSubtle}"
+                             BorderThickness="1"
+                             CornerRadius="{StaticResource RadiusLarge}"
+                             Padding="20,16">
+                         <Grid>
+                             <Grid.ColumnDefinitions>
+                                 <ColumnDefinition Width="*"/>
+                                 <ColumnDefinition Width="Auto"/>
+                             </Grid.ColumnDefinitions>
+                             
+                             <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                 <TextBlock Text="{DynamicResource TxtCacheMgmt}"
+                                            FontWeight="SemiBold"
+                                            Foreground="{StaticResource BrTextPrimary}"/>
+                                 <TextBlock Text="{DynamicResource TxtCacheDesc}"
+                                            Foreground="{StaticResource BrTextSecondary}"
+                                            TextWrapping="Wrap"
+                                            Margin="0,4,16,0"
+                                            FontSize="{StaticResource FontSizeCaption}"/>
+                             </StackPanel>
+                             
+                             <Button x:Name="BtnManageCache"
+                                     Grid.Column="1"
+                                     Content="{DynamicResource TxtManage}"
+                                     Style="{StaticResource BtnBase}"
+                                     Padding="16,8"
+                                     VerticalAlignment="Center"
+                                     Click="BtnManageCache_Click"/>
+                         </Grid>
+                     </Border>
+         
+                     <!-- Language -->
+                     <Border Background="{StaticResource BrBgCard}"
+                             BorderBrush="{StaticResource BrBorderSubtle}"
+                             BorderThickness="1"
+                             CornerRadius="{StaticResource RadiusLarge}"
+                             Padding="20,16"
+                             Margin="0,16,0,0">
+                         <Grid>
+                             <Grid.ColumnDefinitions>
+                                 <ColumnDefinition Width="*"/>
+                                 <ColumnDefinition Width="Auto"/>
+                             </Grid.ColumnDefinitions>
+                             
+                             <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                 <TextBlock Text="{DynamicResource TxtLanguage}"
+                                            FontWeight="SemiBold"
+                                            Foreground="{StaticResource BrTextPrimary}"/>
+                                 <TextBlock Text="{DynamicResource TxtLanguageDesc}"
+                                            Foreground="{StaticResource BrTextSecondary}"
+                                            TextWrapping="Wrap"
+                                            Margin="0,4,16,0"
+                                            FontSize="{StaticResource FontSizeCaption}"/>
+                             </StackPanel>
+                             
+                             <ComboBox x:Name="CmbLanguage"
+                                       Grid.Column="1"
+                                       Width="120"
+                                       VerticalAlignment="Center"
+                                       SelectionChanged="CmbLanguage_SelectionChanged">
+                                 <ComboBoxItem Tag="en" Content="English"/>
+                                 <ComboBoxItem Tag="es" Content="Español"/>
+                             </ComboBox>
+                         </Grid>
+                     </Border>
+         
+                     </StackPanel>
+                 </ScrollViewer>
+             </Grid>
+
+             <!-- ════════════════════════════════════════════════════════
+                  3. HELP / COMPONENT INFO VIEW
+                  ════════════════════════════════════════════════════════ -->
+             <Grid x:Name="ViewHelp" Visibility="Collapsed">
+                 <Grid.RowDefinitions>
+                     <RowDefinition Height="Auto"/>   <!-- header -->
+                     <RowDefinition Height="*"/>      <!-- content -->
+                 </Grid.RowDefinitions>
+         
+                 <!-- Header -->
+                <Border Grid.Row="0" Background="{StaticResource BrBgDeep}" BorderBrush="{StaticResource BrBorderSubtle}" BorderThickness="0,0,0,1" Padding="24,18">
+                    <Grid>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="{DynamicResource TxtHelpTip}"
+                                       FontSize="20"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource BrTextPrimary}"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+         
+                 <!-- Component rows -->
+                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                     <StackPanel Margin="24,20" MaxWidth="600" HorizontalAlignment="Left" Width="600">
+             
+                         <!-- GUIDE SECTION -->
+                         <TextBlock Text="{DynamicResource TxtGuideTitle}" FontSize="18" FontWeight="SemiBold" Foreground="{StaticResource BrTextPrimary}" Margin="0,0,0,12"/>
+                         <Button Content="{DynamicResource TxtBtnGuide}" 
+                                 x:Name="BtnGuide2" 
+                                 Click="BtnGuide_Click2" 
+                                 Style="{StaticResource BtnBase}" 
+                                 Padding="16,12" 
+                                 HorizontalAlignment="Left" 
+                                 Width="150" 
+                                 Margin="0,0,0,32"/>
+             
+                         <!-- ABOUT SECTION -->
+                         <TextBlock Text="{DynamicResource TxtAboutTitle}" FontSize="18" FontWeight="SemiBold" Foreground="{StaticResource BrTextPrimary}" Margin="0,0,0,12"/>
+                         <Border Background="{StaticResource BrBgSurface}" BorderBrush="{StaticResource BrBorderSubtle}" BorderThickness="1" CornerRadius="{StaticResource RadiusMedium}" Padding="16,12">
+                             <StackPanel>
+                                 <!-- Optiscaler Manager -->
+                                 <Grid Margin="0,0,0,12">
+                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                     <TextBlock Grid.Column="0" Text="Optiscaler Manager" FontWeight="SemiBold" FontSize="15" Foreground="{StaticResource BrTextPrimary}" VerticalAlignment="Center"/>
+                                     <TextBlock Grid.Column="1" x:Name="TxtAppVersion" Text="v0.1.0" FontWeight="Bold" Foreground="{StaticResource BrAccent}" VerticalAlignment="Center"/>
+                                 </Grid>
+                                 
+                                 <!-- OptiScaler -->
+                                 <Grid Margin="0,0,0,12">
+                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                     <TextBlock Grid.Column="0" Text="OptiScaler" FontWeight="SemiBold" FontSize="15" Foreground="{StaticResource BrTextPrimary}" VerticalAlignment="Center"/>
+                                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                         <Border x:Name="BdOptiUpdate" Background="#2A1F4A" BorderBrush="{StaticResource BrAccent}" BorderThickness="1" CornerRadius="6" Padding="8,4" Margin="0,0,12,0" VerticalAlignment="Center" Visibility="Collapsed">
+                                             <TextBlock Text="{DynamicResource TxtUpdateAvail}" FontSize="11" Foreground="{StaticResource BrAccent}"/>
+                                         </Border>
+                                         <TextBlock x:Name="TxtOptiVersion" FontWeight="Bold" Foreground="{StaticResource BrAccent}" VerticalAlignment="Center"/>
+                                     </StackPanel>
+                                 </Grid>
+                                 
+                                 <!-- Fakenvapi -->
+                                 <Grid Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Fakenvapi" FontWeight="SemiBold" FontSize="15" Foreground="{StaticResource BrTextPrimary}" VerticalAlignment="Center"/>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Border x:Name="BdFakeUpdate" Background="#2A1F4A" BorderBrush="{StaticResource BrAccent}" BorderThickness="1" CornerRadius="6" Padding="8,4" Margin="0,0,12,0" VerticalAlignment="Center" Visibility="Collapsed">
+                                            <TextBlock Text="{DynamicResource TxtUpdateAvail}" FontSize="11" Foreground="{StaticResource BrAccent}"/>
+                                        </Border>
+                                        <TextBlock x:Name="TxtFakeVersion" FontWeight="Bold" Foreground="{StaticResource BrAccent}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                 </Grid>
+                                 
+                                 <!-- NukemFG -->
+                                 <Grid Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="NukemFG" FontWeight="SemiBold" FontSize="15" Foreground="{StaticResource BrTextPrimary}" VerticalAlignment="Center"/>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Border x:Name="BdNukemUpdate" Background="#3D2410" BorderBrush="{StaticResource BrAccentWarm}" BorderThickness="1" CornerRadius="6" Padding="8,4" Margin="0,0,12,0" VerticalAlignment="Center" Visibility="Collapsed">
+                                            <TextBlock Text="{DynamicResource TxtUpdateAvail}" FontSize="11" Foreground="{StaticResource BrAccentWarm}"/>
+                                        </Border>
+                                        <TextBlock x:Name="TxtNukemVersion" FontWeight="Bold" Foreground="{StaticResource BrAccentWarm}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                 </Grid>
+                                 
+                                 <!-- Build Date -->
+                                 <Grid Margin="0,0,0,16">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="{DynamicResource TxtBuildDateLbl}" FontWeight="SemiBold" FontSize="15" Foreground="{StaticResource BrTextPrimary}" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="1" x:Name="TxtBuildDate" Text="--/--/----" FontWeight="Bold" Foreground="{StaticResource BrTextSecondary}" VerticalAlignment="Center"/>
+                                 </Grid>
+             
+                                 <Separator Background="{StaticResource BrBorderSubtle}" Margin="0,0,0,16"/>
+             
+                                 <StackPanel Orientation="Horizontal">
+                                     <Button Content="{DynamicResource TxtCheckUpdatesBtn}" 
+                                             x:Name="BtnCheckUpdates" 
+                                             Click="BtnCheckUpdates_Click" 
+                                             Style="{StaticResource BtnPrimary}" 
+                                             Padding="16,8" 
+                                             Margin="0,0,12,0"/>
+                                     <Button Content="{DynamicResource TxtGithubBtn}" 
+                                             x:Name="BtnGithub" 
+                                             Click="BtnGithub_Click" 
+                                             Style="{StaticResource BtnBase}" 
+                                             Padding="16,8"/>
+                                 </StackPanel>
+             
+                             </StackPanel>
+                         </Border>
+             
+                         <!-- FEEDBACK SECTION -->
+                         <TextBlock Text="{DynamicResource TxtFeedbackTitle}" FontSize="18" FontWeight="SemiBold" Foreground="{StaticResource BrTextPrimary}" Margin="0,32,0,12"/>
+                         <Border Background="{StaticResource BrBgCard}" BorderBrush="{StaticResource BrBorderSubtle}" BorderThickness="1" CornerRadius="{StaticResource RadiusMedium}" Padding="16,12" Margin="0,0,0,40">
+                             <TextBlock Text="{DynamicResource TxtFeedbackDesc}" TextWrapping="Wrap" Foreground="{StaticResource BrTextSecondary}" FontSize="{StaticResource FontSizeBody}"/>
+                         </Border>
+             
+                     </StackPanel>
+                 </ScrollViewer>
+             </Grid>
+
+             <!-- SCANNING MODAL OVERLAY (Sits on top of EVERYTHING in column 1) -->
+             <Grid x:Name="OverlayScanning" Background="#B2000000" Visibility="Collapsed" Panel.ZIndex="100">
+                <Border Background="{StaticResource BrBgElevated}"
+                        BorderBrush="{StaticResource BrAccent}"
+                        BorderThickness="1"
+                        CornerRadius="{StaticResource RadiusLarge}"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Padding="60,50">
+                    <StackPanel>
+                        <!-- Animated Dots -->
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,10,0,24">
+                            <Ellipse Width="12" Height="12" Fill="{StaticResource BrAccent}" Margin="4,0">
+                                <Ellipse.RenderTransform>
+                                    <TranslateTransform Y="0"/>
+                                </Ellipse.RenderTransform>
+                                <Ellipse.Triggers>
+                                    <EventTrigger RoutedEvent="Loaded">
+                                        <BeginStoryboard>
+                                            <Storyboard RepeatBehavior="Forever">
+                                                <DoubleAnimation Storyboard.TargetProperty="(Ellipse.RenderTransform).(TranslateTransform.Y)"
+                                                                 From="0" To="-10" Duration="0:0:0.4" AutoReverse="True" BeginTime="0:0:0"/>
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </EventTrigger>
+                                </Ellipse.Triggers>
+                            </Ellipse>
+                            <Ellipse Width="12" Height="12" Fill="{StaticResource BrAccent}" Margin="4,0">
+                                <Ellipse.RenderTransform>
+                                    <TranslateTransform Y="0"/>
+                                </Ellipse.RenderTransform>
+                                <Ellipse.Triggers>
+                                    <EventTrigger RoutedEvent="Loaded">
+                                        <BeginStoryboard>
+                                            <Storyboard RepeatBehavior="Forever">
+                                                <DoubleAnimation Storyboard.TargetProperty="(Ellipse.RenderTransform).(TranslateTransform.Y)"
+                                                                 From="0" To="-10" Duration="0:0:0.4" AutoReverse="True" BeginTime="0:0:0.15"/>
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </EventTrigger>
+                                </Ellipse.Triggers>
+                            </Ellipse>
+                            <Ellipse Width="12" Height="12" Fill="{StaticResource BrAccent}" Margin="4,0">
+                                <Ellipse.RenderTransform>
+                                    <TranslateTransform Y="0"/>
+                                </Ellipse.RenderTransform>
+                                <Ellipse.Triggers>
+                                    <EventTrigger RoutedEvent="Loaded">
+                                        <BeginStoryboard>
+                                            <Storyboard RepeatBehavior="Forever">
+                                                <DoubleAnimation Storyboard.TargetProperty="(Ellipse.RenderTransform).(TranslateTransform.Y)"
+                                                                 From="0" To="-10" Duration="0:0:0.4" AutoReverse="True" BeginTime="0:0:0.3"/>
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </EventTrigger>
+                                </Ellipse.Triggers>
+                            </Ellipse>
+                        </StackPanel>
+                        <TextBlock Text="{DynamicResource TxtScanningTitle}"
+                                   FontSize="{StaticResource FontSizeSubtitle}"
+                                   FontWeight="Bold"
+                                   Foreground="{StaticResource BrTextPrimary}"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,16,0,8"/>
+                        <TextBlock Text="{DynamicResource TxtScanningDesc}"
+                                   FontSize="{StaticResource FontSizeBody}"
+                                   Foreground="{StaticResource BrTextSecondary}"
+                                   HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+             </Grid>
+
+        </Grid>
+    </Grid>
+</Window>

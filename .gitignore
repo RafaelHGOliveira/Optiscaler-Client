@@ -52,3 +52,16 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+# Application logs and local errors
+error_log.txt
+
+# User-specific project settings
+*.csproj.user
+
+# IDE specific files
+.vs/
+.idea/
+.vscode/
+
+# Publish output
+publish/
