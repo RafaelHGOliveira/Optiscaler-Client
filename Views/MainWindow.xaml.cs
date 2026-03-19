@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -228,7 +228,7 @@ namespace OptiscalerClient.Views
             }
             catch
             {
-                TxtAppVersion.Text = "v0.1.0";
+                TxtAppVersion.Text = "v1.0.1";
                 TxtBuildDate.Text = "Unknown";
             }
 
