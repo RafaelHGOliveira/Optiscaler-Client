@@ -12,17 +12,7 @@
         Topmost="True"
         ShowInTaskbar="False">
 
-    <Window.Styles>
-        <Style Selector="Window[Opacity=0]">
-            <Setter Property="Transitions">
-                <Transitions>
-                    <DoubleTransition Property="Opacity" Duration="0:0:0.2"/>
-                </Transitions>
-            </Setter>
-        </Style>
-    </Window.Styles>
-
-    <Panel Margin="20">
+    <Panel Margin="20" Name="RootPanel" Opacity="0">
         <!-- Window Shadow -->
         <Border CornerRadius="12"
                 Background="{StaticResource BrBgBase}"

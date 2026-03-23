@@ -87,7 +87,12 @@
              <!-- ════════════════════════════════════════════════════════
                   1. GAMES VIEW
                   ════════════════════════════════════════════════════════ -->
-             <Grid Name="ViewGames" IsVisible="True">
+             <Grid Name="ViewGames">
+                 <Grid.Transitions>
+                     <Transitions>
+                         <DoubleTransition Property="Opacity" Duration="0:0:0.18" Easing="CubicEaseOut"/>
+                     </Transitions>
+                 </Grid.Transitions>
                  <Grid.RowDefinitions>
                      <RowDefinition Height="Auto"/>
                      <RowDefinition Height="*"/>
@@ -205,21 +210,26 @@
                          <ListBox.ItemTemplate>
                              <DataTemplate x:DataType="models:Game">
                                  <!-- Game Card -->
-                                 <Border Background="{StaticResource BrBgCard}"
+                                 <Border Classes="GameCard"
+                                         Background="{StaticResource BrBgCard}"
                                          BorderBrush="{StaticResource BrBorderSubtle}"
                                          BorderThickness="1"
                                          CornerRadius="{StaticResource RadiusLarge}"
+                                         RenderTransformOrigin="50%,50%"
                                          Padding="20,16">
                                      <Border.Styles>
-                                         <Style Selector="Border:pointerover">
+                                         <Style Selector="Border.GameCard:pointerover">
                                              <Setter Property="BorderBrush" Value="{StaticResource BrBorderDefault}"/>
                                              <Setter Property="Background"  Value="{StaticResource BrBgElevated}"/>
+                                             <Setter Property="RenderTransform" Value="scale(1.007)"/>
                                          </Style>
-                                         <Style Selector="Border">
+                                         <Style Selector="Border.GameCard">
+                                             <Setter Property="RenderTransform" Value="scale(1)"/>
                                              <Setter Property="Transitions">
                                                  <Transitions>
                                                      <BrushTransition Property="Background" Duration="0:0:0.15"/>
                                                      <BrushTransition Property="BorderBrush" Duration="0:0:0.15"/>
+                                                     <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.18"/>
                                                  </Transitions>
                                              </Setter>
                                          </Style>
@@ -395,7 +405,12 @@
              <!-- ════════════════════════════════════════════════════════
                   2. SETTINGS VIEW
                   ════════════════════════════════════════════════════════ -->
-             <Grid Name="ViewSettings" IsVisible="False">
+             <Grid Name="ViewSettings" Opacity="0" IsHitTestVisible="False">
+                 <Grid.Transitions>
+                     <Transitions>
+                         <DoubleTransition Property="Opacity" Duration="0:0:0.18" Easing="CubicEaseOut"/>
+                     </Transitions>
+                 </Grid.Transitions>
                  <Grid.RowDefinitions>
                      <RowDefinition Height="Auto"/>
                      <RowDefinition Height="*"/>
@@ -481,6 +496,39 @@
                          </Grid>
                      </Border>
  
+                     <!-- Animations -->
+                     <Border Background="{StaticResource BrBgCard}"
+                             BorderBrush="{StaticResource BrBorderSubtle}"
+                             BorderThickness="1"
+                             CornerRadius="{StaticResource RadiusLarge}"
+                             Padding="20,16"
+                             Margin="0,16,0,0">
+                         <Grid>
+                             <Grid.ColumnDefinitions>
+                                 <ColumnDefinition Width="*"/>
+                                 <ColumnDefinition Width="Auto"/>
+                             </Grid.ColumnDefinitions>
+                             
+                             <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                 <TextBlock Text="{DynamicResource TxtAnimations}"
+                                            FontWeight="SemiBold"
+                                            Foreground="{StaticResource BrTextPrimary}"/>
+                                 <TextBlock Text="{DynamicResource TxtAnimationsDesc}"
+                                            Foreground="{StaticResource BrTextSecondary}"
+                                            TextWrapping="Wrap"
+                                            Margin="0,4,16,0"
+                                            FontSize="{StaticResource FontSizeCaption}"/>
+                             </StackPanel>
+                             
+                             <ToggleSwitch Name="TglAnimations"
+                                           Grid.Column="1"
+                                           VerticalAlignment="Center"
+                                           OnContent="" OffContent=""
+                                           IsChecked="True"
+                                           IsCheckedChanged="TglAnimations_IsCheckedChanged"/>
+                         </Grid>
+                     </Border>
+ 
                      <!-- Language -->
                      <Border Background="{StaticResource BrBgCard}"
                              BorderBrush="{StaticResource BrBorderSubtle}"
@@ -524,7 +572,12 @@
              <!-- ════════════════════════════════════════════════════════
                   3. HELP / COMPONENT INFO VIEW
                   ════════════════════════════════════════════════════════ -->
-             <Grid Name="ViewHelp" IsVisible="False">
+             <Grid Name="ViewHelp" Opacity="0" IsHitTestVisible="False">
+                 <Grid.Transitions>
+                     <Transitions>
+                         <DoubleTransition Property="Opacity" Duration="0:0:0.18" Easing="CubicEaseOut"/>
+                     </Transitions>
+                 </Grid.Transitions>
                  <Grid.RowDefinitions>
                      <RowDefinition Height="Auto"/>   <!-- header -->
                      <RowDefinition Height="*"/>      <!-- content -->

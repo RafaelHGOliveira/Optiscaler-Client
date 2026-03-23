@@ -137,8 +137,10 @@
     <x:String x:Key="TxtNoGpuTip">No se detectó GPU en este sistema</x:String>
     <x:String x:Key="TxtGpuFail">⚠️ Error al detectar GPU</x:String>
     <x:String x:Key="TxtGpuFailTipFormat">Error al detectar GPU: {0}</x:String>
-    <x:String x:Key="TxtAutoScan">Escaneo Automático al Iniciar</x:String>
-    <x:String x:Key="TxtAutoScanDesc">Escanea automáticamente en busca de juegos si la lista está vacía al iniciar.</x:String>
+    <x:String x:Key="TxtAutoScan">Escaneo automático al iniciar</x:String>
+    <x:String x:Key="TxtAutoScanDesc">Escanear automáticamente juegos al iniciar la aplicación</x:String>
+    <x:String x:Key="TxtAnimations">Habilitar animaciones</x:String>
+    <x:String x:Key="TxtAnimationsDesc">Activar transiciones suaves y animaciones en toda la interfaz</x:String>
 
     <!-- Help View Strings -->
     <x:String x:Key="TxtAboutTitle">Acerca de</x:String>

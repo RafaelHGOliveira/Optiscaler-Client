@@ -3,6 +3,8 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
+using System.Collections.Generic;
+using OptiscalerClient.Helpers;
 using OptiscalerClient.Services;
 using System;
 using System.Linq;
@@ -35,7 +37,16 @@ namespace OptiscalerClient.Views
                 titleBar.PointerPressed += (s, e) => this.BeginMoveDrag(e);
             }
 
-            this.Opened += (s, e) => this.Opacity = 1;
+            this.Opened += (s, e) =>
+            {
+                this.Opacity = 1;
+                var rootPanel = this.FindControl<Panel>("RootPanel");
+                if (rootPanel != null)
+                {
+                    AnimationHelper.SetupPanelTransition(rootPanel);
+                    rootPanel.Opacity = 1;
+                }
+            };
 
             LoadCacheItems();
         }
@@ -164,8 +175,17 @@ namespace OptiscalerClient.Views
             }
         }
 
-        private void BtnClose_Click(object? sender, RoutedEventArgs e)
+        private bool _isAnimatingClose = false;
+
+        private void BtnClose_Click(object? sender, RoutedEventArgs e) => _ = CloseAnimated();
+
+        private async Task CloseAnimated()
         {
+            if (_isAnimatingClose) return;
+            _isAnimatingClose = true;
+            var rootPanel = this.FindControl<Panel>("RootPanel");
+            if (rootPanel != null) rootPanel.Opacity = 0;
+            await Task.Delay(220);
             this.Close();
         }
     }

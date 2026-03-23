@@ -11,7 +11,7 @@
         CanResize="False"
         ShowInTaskbar="False">
 
-    <Panel Margin="16">
+    <Panel Margin="16" Name="RootPanel" Opacity="0">
         <!-- BoxShadow is applied to a ghost panel that doesn't clip content -->
         <Border CornerRadius="12"
                 Background="{StaticResource BrBgBase}"

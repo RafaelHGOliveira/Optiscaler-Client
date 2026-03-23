@@ -11,6 +11,7 @@ using SharpCompress.Common;
 using SharpCompress.Archives;
 using Avalonia.Markup.Xaml;
 using Avalonia.Input;
+using OptiscalerClient.Helpers;
 
 namespace OptiscalerClient.Views
 {
@@ -58,7 +59,16 @@ namespace OptiscalerClient.Views
                 titleBar.PointerPressed += (s, e) => this.BeginMoveDrag(e);
             }
 
-            this.Opened += (s, e) => this.Opacity = 1;
+            this.Opened += (s, e) =>
+            {
+                this.Opacity = 1;
+                var rootPanel = this.FindControl<Panel>("RootPanel");
+                if (rootPanel != null)
+                {
+                    AnimationHelper.SetupPanelTransition(rootPanel);
+                    rootPanel.Opacity = 1;
+                }
+            };
 
             SetupText();
         }
@@ -214,7 +224,7 @@ namespace OptiscalerClient.Views
                 }
 
                 WasSuccessful = true;
-                Close(true);
+                _ = CloseAnimated(true);
             }
             catch (Exception ex)
             {
@@ -223,10 +233,22 @@ namespace OptiscalerClient.Views
             }
         }
 
+        private bool _isAnimatingClose = false;
+
+        private async Task CloseAnimated(bool result)
+        {
+            if (_isAnimatingClose) return;
+            _isAnimatingClose = true;
+            var rootPanel = this.FindControl<Panel>("RootPanel");
+            if (rootPanel != null) rootPanel.Opacity = 0;
+            await Task.Delay(220);
+            Close(result);
+        }
+
         private void BtnSkip_Click(object sender, RoutedEventArgs e)
         {
             WasSuccessful = false;
-            Close(false);
+            _ = CloseAnimated(false);
         }
 
         private string GetResourceString(string key, string fallback)

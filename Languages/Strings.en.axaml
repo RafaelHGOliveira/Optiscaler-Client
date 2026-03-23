@@ -149,6 +149,8 @@
     <x:String x:Key="TxtGpuFailTipFormat">Error detecting GPU: {0}</x:String>
     <x:String x:Key="TxtAutoScan">Auto-Scan on Startup</x:String>
     <x:String x:Key="TxtAutoScanDesc">Automatically scan for games if the list is empty on startup.</x:String>
+    <x:String x:Key="TxtAnimations">Enable animations</x:String>
+    <x:String x:Key="TxtAnimationsDesc">Enable smooth transitions and animations throughout the interface</x:String>
 
     <!-- App Update -->
     <x:String x:Key="TxtUpdateAvailableTitle">Update Available</x:String>

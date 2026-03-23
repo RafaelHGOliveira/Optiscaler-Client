@@ -2,7 +2,9 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using OptiscalerClient.Models;
 using Avalonia.Markup.Xaml;
+using OptiscalerClient.Helpers;
 using Avalonia.Media;
 using Avalonia.Threading;
 using System;
@@ -81,9 +83,15 @@ namespace OptiscalerClient.Views
                 }
             }
 
-            this.Opened += (s, e) => 
+            this.Opened += (s, e) =>
             {
-                this.Opacity = 1; // Show when ready
+                this.Opacity = 1;
+                var rootPanel = this.FindControl<Panel>("RootPanel");
+                if (rootPanel != null)
+                {
+                    AnimationHelper.SetupPanelTransition(rootPanel);
+                    rootPanel.Opacity = 1;
+                }
             };
         }
 
@@ -92,7 +100,19 @@ namespace OptiscalerClient.Views
             AvaloniaXamlLoader.Load(this);
         }
 
-        private void BtnCancel_Click(object sender, RoutedEventArgs e) => Close(false);
-        private void BtnConfirm_Click(object sender, RoutedEventArgs e) => Close(true);
+        private bool _isAnimatingClose = false;
+
+        private void BtnCancel_Click(object sender, RoutedEventArgs e) => _ = CloseAnimated(false);
+        private void BtnConfirm_Click(object sender, RoutedEventArgs e) => _ = CloseAnimated(true);
+
+        private async Task CloseAnimated(bool result)
+        {
+            if (_isAnimatingClose) return;
+            _isAnimatingClose = true;
+            var rootPanel = this.FindControl<Panel>("RootPanel");
+            if (rootPanel != null) rootPanel.Opacity = 0;
+            await Task.Delay(220);
+            Close(result);
+        }
     }
 }

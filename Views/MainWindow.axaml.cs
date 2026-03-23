@@ -90,6 +90,8 @@ namespace OptiscalerClient.Views
             bool hadSavedGames = LoadSavedGames();
             _ = LoadGpuInfoAsync();
             _ = CheckUpdatesOnStartupAsync();
+            
+            UpdateAnimationsState(_componentService.Config.AnimationsEnabled);
 
             if (!hadSavedGames && _componentService.Config.AutoScan)
             {
@@ -166,26 +168,34 @@ namespace OptiscalerClient.Views
             await guide.ShowDialog(this);
         }
 
+        private static readonly string[] _viewNames = { "ViewGames", "ViewSettings", "ViewHelp" };
+
+        private void SwitchToView(string viewName)
+        {
+            foreach (var name in _viewNames)
+            {
+                var grid = this.FindControl<Grid>(name);
+                if (grid == null) continue;
+                bool isActive = name == viewName;
+                grid.Opacity = isActive ? 1.0 : 0.0;
+                grid.IsHitTestVisible = isActive;
+            }
+        }
+
         private void NavGames_Click(object sender, RoutedEventArgs e)
         {
-            this.FindControl<Grid>("ViewGames")!.IsVisible = true;
-            this.FindControl<Grid>("ViewSettings")!.IsVisible = false;
-            this.FindControl<Grid>("ViewHelp")!.IsVisible = false;
+            SwitchToView("ViewGames");
         }
 
         private void NavHelp_Click(object sender, RoutedEventArgs e)
         {
-            this.FindControl<Grid>("ViewGames")!.IsVisible = false;
-            this.FindControl<Grid>("ViewSettings")!.IsVisible = false;
-            this.FindControl<Grid>("ViewHelp")!.IsVisible = true;
+            SwitchToView("ViewHelp");
             PopulateHelpContent();
         }
 
         private void NavSettings_Click(object sender, RoutedEventArgs e)
         {
-            this.FindControl<Grid>("ViewGames")!.IsVisible = false;
-            this.FindControl<Grid>("ViewSettings")!.IsVisible = true;
-            this.FindControl<Grid>("ViewHelp")!.IsVisible = false;
+            SwitchToView("ViewSettings");
 
             _isInitializingLanguage = true;
             var cmbLanguage = this.FindControl<ComboBox>("CmbLanguage");
@@ -204,6 +214,11 @@ namespace OptiscalerClient.Views
             if (tglAutoScan != null)
             {
                 tglAutoScan.IsChecked = _componentService.Config.AutoScan;
+            }
+            var tglAnimations = this.FindControl<ToggleSwitch>("TglAnimations");
+            if (tglAnimations != null)
+            {
+                tglAnimations.IsChecked = _componentService.Config.AnimationsEnabled;
             }
             _isInitializingLanguage = false;
         }
@@ -237,6 +252,41 @@ namespace OptiscalerClient.Views
             {
                 _componentService.Config.AutoScan = tgl.IsChecked ?? true;
                 _componentService.SaveConfiguration();
+            }
+        }
+
+        private void TglAnimations_IsCheckedChanged(object sender, RoutedEventArgs e)
+        {
+            if (_isInitializingLanguage) return;
+            if (sender is ToggleSwitch tgl)
+            {
+                _componentService.Config.AnimationsEnabled = tgl.IsChecked ?? true;
+                _componentService.SaveConfiguration();
+                UpdateAnimationsState(_componentService.Config.AnimationsEnabled);
+            }
+        }
+
+        private void UpdateAnimationsState(bool enabled)
+        {
+            var duration = enabled ? TimeSpan.FromMilliseconds(180) : TimeSpan.Zero;
+            
+            // Update main view transitions
+            foreach (var viewName in _viewNames)
+            {
+                var grid = this.FindControl<Grid>(viewName);
+                if (grid?.Transitions != null)
+                {
+                    grid.Transitions.Clear();
+                    if (enabled)
+                    {
+                        grid.Transitions.Add(new Avalonia.Animation.DoubleTransition 
+                        { 
+                            Property = Visual.OpacityProperty, 
+                            Duration = duration,
+                            Easing = new Avalonia.Animation.Easings.CubicEaseOut()
+                        });
+                    }
+                }
             }
         }
 

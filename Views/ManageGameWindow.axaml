@@ -22,7 +22,7 @@
         <converters:BoolToVisibilityConverter  x:Key="InverseBoolToVisibilityConverter" Invert="True"/>
     </Window.Resources>
 
-    <Panel Margin="15">
+    <Panel Margin="15" Name="RootPanel" Opacity="0">
         <!-- Main Container with Shadow -->
         <Border CornerRadius="12"
                 Background="{StaticResource BrBgBase}"

@@ -23,6 +23,7 @@ namespace OptiscalerClient.Models
         public string Language { get; set; } = "en";
         public bool Debug { get; set; } = false;
         public bool AutoScan { get; set; } = true;
+        public bool AnimationsEnabled { get; set; } = true;
     }
 
     /// <summary>
