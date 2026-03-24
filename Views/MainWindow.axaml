@@ -664,7 +664,7 @@
                                  <Grid Margin="0,0,0,12">
                                      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                      <TextBlock Grid.Column="0" Text="Optiscaler Client" FontWeight="SemiBold" FontSize="15" Foreground="{StaticResource BrTextPrimary}" VerticalAlignment="Center"/>
-                                     <TextBlock Grid.Column="1" Name="TxtAppVersion" Text="v1.0.1" FontWeight="Bold" Foreground="{StaticResource BrAccent}" VerticalAlignment="Center"/>
+                                     <TextBlock Grid.Column="1" Name="TxtAppVersion" Text="" FontWeight="Bold" Foreground="{StaticResource BrAccent}" VerticalAlignment="Center"/>
                                  </Grid>
                                  
                                  <!-- OptiScaler -->

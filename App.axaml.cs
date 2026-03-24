@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Reflection;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
@@ -31,6 +32,9 @@ namespace OptiscalerClient
 
             base.OnFrameworkInitializationCompleted();
         }
+
+        public static string AppVersion { get; } =
+            Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.0.0";
 
         public static string CurrentLanguage = "en";
 

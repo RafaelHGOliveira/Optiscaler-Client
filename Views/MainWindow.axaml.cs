@@ -328,18 +328,15 @@ namespace OptiscalerClient.Views
             var txtAppVersion = this.FindControl<TextBlock>("TxtAppVersion");
             var txtBuildDate = this.FindControl<TextBlock>("TxtBuildDate");
             
+            if (txtAppVersion != null) txtAppVersion.Text = $"v{App.AppVersion}";
+
             try
             {
-                var assembly = System.Reflection.Assembly.GetExecutingAssembly();
-                var version = assembly.GetName().Version?.ToString(3) ?? "0.1.0";
-                if (txtAppVersion != null) txtAppVersion.Text = $"v{version}";
-
                 var buildDate = System.IO.File.GetLastWriteTime(System.AppContext.BaseDirectory);
                 if (txtBuildDate != null) txtBuildDate.Text = buildDate.ToString("yyyy-MM-dd");
             }
             catch
             {
-                if (txtAppVersion != null) txtAppVersion.Text = "v1.0.1";
                 if (txtBuildDate != null) txtBuildDate.Text = "Unknown";
             }
 
