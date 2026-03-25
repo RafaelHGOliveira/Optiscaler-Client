@@ -9,7 +9,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationIcon>assets\icon.ico</ApplicationIcon>
-    
+
     <!-- Build Optimizations -->
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>

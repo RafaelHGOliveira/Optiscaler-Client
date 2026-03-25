@@ -173,6 +173,12 @@ namespace OptiscalerClient.Views
                 {
                     bool isFirstStable = !isLatestStableMarked && !ver.Contains("nightly", StringComparison.OrdinalIgnoreCase);
                     
+                    // Mark as latest stable if this is the first stable version
+                    if (isFirstStable)
+                    {
+                        isLatestStableMarked = true;
+                    }
+                    
                     // Select default version based on user preference
                     if (showBetaVersions && !string.IsNullOrEmpty(latestBeta))
                     {
@@ -183,7 +189,6 @@ namespace OptiscalerClient.Views
                     {
                         // User prefers stable - select the first stable version
                         selectedIndex = currentIndex;
-                        isLatestStableMarked = true;
                     }
                     
                     cmbOptiVersion.Items.Add(BuildVersionItem(ver, isBeta: false, isLatest: isFirstStable));
