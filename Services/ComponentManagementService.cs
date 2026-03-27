@@ -32,6 +32,8 @@ namespace OptiscalerClient.Services
     /// </summary>
     public class ComponentManagementService
     {
+        private static readonly object _downloadLock = new();
+        private static readonly System.Collections.Generic.HashSet<string> _activeOptiDownloads = new(StringComparer.OrdinalIgnoreCase);
         private readonly string _baseDir;
         private readonly string _cacheDir;
         private readonly string _versionFile;
@@ -815,10 +817,11 @@ namespace OptiscalerClient.Services
             }
             progress?.Report(100);
 
-            // Extract only the target DLL
+            // Extract only the target DLL (off the UI thread)
             DebugWindow.Log($"[ExtrasDownload] Extracting from {Path.GetFileName(tempZip)}");
-            using (var archive = SharpCompress.Archives.ArchiveFactory.Open(tempZip))
+            await Task.Run(() =>
             {
+                using var archive = SharpCompress.Archives.ArchiveFactory.Open(tempZip);
                 foreach (var entry in archive.Entries.Where(e => !e.IsDirectory))
                 {
                     if (Path.GetFileName(entry.Key ?? "").Equals("amd_fidelityfx_upscaler_dx12.dll",
@@ -832,9 +835,9 @@ namespace OptiscalerClient.Services
                         break;
                     }
                 }
-            }
+            });
 
-            File.Delete(tempZip);
+            await Task.Run(() => File.Delete(tempZip));
 
             if (!File.Exists(dllPath))
                 throw new Exception("amd_fidelityfx_upscaler_dx12.dll not found inside the downloaded archive.");
@@ -908,6 +911,15 @@ namespace OptiscalerClient.Services
             {
                 DebugWindow.Log($"[Download] OptiScaler v{version} already cached at {extractPath}");
                 return extractPath; // Already downloaded
+            }
+
+            lock (_downloadLock)
+            {
+                if (_activeOptiDownloads.Contains(version))
+                {
+                    throw new VersionUnavailableException(version, "Download already in progress for this version.");
+                }
+                _activeOptiDownloads.Add(version);
             }
 
             LastError = null;
@@ -1073,13 +1085,14 @@ namespace OptiscalerClient.Services
                 // Ensure 100% is reached
                 progress?.Report(100);
 
-                // Extract
+                // Extract (off the UI thread)
                 DebugWindow.Log($"[Extract] Starting extraction of {Path.GetFileName(tempZip)} to {extractPath}");
                 var extractStartTime = DateTime.Now;
                 var fileCount = 0;
 
-                using (var archive = ArchiveFactory.Open(tempZip))
+                await Task.Run(() =>
                 {
+                    using var archive = ArchiveFactory.Open(tempZip);
                     var entries = archive.Entries.Where(e => !e.IsDirectory).ToList();
 
                     foreach (var entry in entries)
@@ -1091,20 +1104,18 @@ namespace OptiscalerClient.Services
                         if (destDir != null && !Directory.Exists(destDir))
                             Directory.CreateDirectory(destDir);
 
-                        using (var entryStream = entry.OpenEntryStream())
-                        using (var fileStream = File.Create(destPath))
-                        {
-                            entryStream.CopyTo(fileStream, 81920); // 80KB buffer for faster extraction
-                        }
+                        using var entryStream = entry.OpenEntryStream();
+                        using var fileStream = File.Create(destPath);
+                        entryStream.CopyTo(fileStream, 81920); // 80KB buffer for faster extraction
 
                         fileCount++;
                     }
-                }
+                });
 
                 var extractDuration = DateTime.Now - extractStartTime;
                 DebugWindow.Log($"[Extract] Extraction completed: {fileCount} files extracted in {extractDuration.TotalSeconds:F1} seconds");
 
-                File.Delete(tempZip);
+                await Task.Run(() => File.Delete(tempZip));
                 DebugWindow.Log($"[Download] Temporary file deleted: {Path.GetFileName(tempZip)}");
 
                 _localVersions.OptiScalerVersion = version; // update the locally assumed latest for other components
@@ -1123,6 +1134,22 @@ namespace OptiscalerClient.Services
                     DebugWindow.Log($"[Download] Cleaned up cache directory due to error: {extractPath}");
                 }
                 throw;
+            }
+            finally
+            {
+                lock (_downloadLock)
+                {
+                    _activeOptiDownloads.Remove(version);
+                }
+            }
+        }
+
+        public static bool IsOptiScalerDownloadActive(string version)
+        {
+            if (string.IsNullOrWhiteSpace(version)) return false;
+            lock (_downloadLock)
+            {
+                return _activeOptiDownloads.Contains(version);
             }
         }
 
@@ -1250,8 +1277,9 @@ namespace OptiscalerClient.Services
 
                     Directory.CreateDirectory(extractPath);
 
-                    using (var archive = ArchiveFactory.Open(tempZip))
+                    await Task.Run(() =>
                     {
+                        using var archive = ArchiveFactory.Open(tempZip);
                         foreach (var entry in archive.Entries.Where(e => !e.IsDirectory))
                         {
                             entry.WriteToDirectory(extractPath, new ExtractionOptions
@@ -1260,9 +1288,9 @@ namespace OptiscalerClient.Services
                                 Overwrite = true
                             });
                         }
-                    }
+                    });
 
-                    File.Delete(tempZip);
+                    await Task.Run(() => File.Delete(tempZip));
                 }
                 catch (HttpRequestException httpEx)
                 {
