@@ -1767,11 +1767,13 @@ namespace OptiscalerClient.Views
                                 FontWeight = FontWeight.Bold,
                                 Foreground = this.FindResource("BrTextPrimary") as IBrush
                             };
-                            bulletText.Inlines.Add(titleRun);
+                            if (bulletText.Inlines != null)
+                                bulletText.Inlines.Add(titleRun);
                             
                             // Add regular text
                             var textRun = new Avalonia.Controls.Documents.Run(item.Text);
-                            bulletText.Inlines.Add(textRun);
+                            if (bulletText.Inlines != null)
+                                bulletText.Inlines.Add(textRun);
                         }
                         else
                         {
@@ -1858,11 +1860,13 @@ namespace OptiscalerClient.Views
                                         FontWeight = FontWeight.Bold,
                                         Foreground = this.FindResource("BrTextPrimary") as IBrush
                                     };
-                                    bulletText.Inlines.Add(titleRun);
+                                    if (bulletText.Inlines != null)
+                                        bulletText.Inlines.Add(titleRun);
                                     
                                     // Add regular text
                                     var textRun = new Avalonia.Controls.Documents.Run(subItem.Text);
-                                    bulletText.Inlines.Add(textRun);
+                                    if (bulletText.Inlines != null)
+                                        bulletText.Inlines.Add(textRun);
                                 }
                                 else
                                 {
