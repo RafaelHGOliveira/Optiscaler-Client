@@ -31,6 +31,7 @@
     <x:String x:Key="TxtAppTitle">Optiscaler Client</x:String>
     <x:String x:Key="TxtBtnScan">⟳  Scan Games</x:String>
     <x:String x:Key="TxtBtnAddManual">＋  Add Manually</x:String>
+    <x:String x:Key="TxtBtnBulkInstall">⚡  Bulk Install</x:String>
     <x:String x:Key="TxtTipSettings">Settings</x:String>
     <x:String x:Key="TxtTipComponent">Component versions</x:String>
     <x:String x:Key="TxtUpdateNukem">↑  Update NukemFG</x:String>
@@ -91,6 +92,10 @@
     <x:String x:Key="TxtFakenvapiHelpTip">Tricks the game into detecting an NVIDIA graphics card, allowing you to bypass hardware restrictions and enable DLSS technologies on AMD or Intel GPUs.</x:String>
     <x:String x:Key="TxtNukemHelpTip">A mod by Nukem that replaces native DLSS Frame Generation with AMD FSR 3 Frame Generation, enabling frame generation on any compatible GPU.</x:String>
 
+    <x:String x:Key="TxtTooltipOptiScalerVersion">Select the specific version of OptiScaler you want to install for this game.</x:String>
+    <x:String x:Key="TxtTooltipInjectionMethod">Determines how OptiScaler is loaded. Common choices are dxgi.dll or version.dll depending on the game compatibility.</x:String>
+    <x:String x:Key="TxtTooltipFsr4Int8">Injects the FSR 4 INT8 mod DLL. This allows non-RDNA 4 GPUs to use FSR 4 features. Select 'None' if you have an RX 9000 series (RDNA 4) GPU.</x:String>
+
     <x:String x:Key="TxtOptiInstalled">OptiScaler Installed</x:String>
     <x:String x:Key="TxtOptiNotInstalled">Not Installed</x:String>
     <x:String x:Key="TxtNoOptiDetected">No version detected</x:String>
@@ -99,6 +104,9 @@
     <x:String x:Key="TxtExtractingFormat">Extracting and installing v{0}...</x:String>
     <x:String x:Key="TxtInstallSuccessFormat">{0} installed successfully!</x:String>
     <x:String x:Key="TxtDownloadErrorPrefix">Failed to download OptiScaler: {0}</x:String>
+    <x:String x:Key="TxtVersionUnavailable">Cannot install OptiScaler v{0} right now.
+
+This version is unavailable for download. Check your internet connection and try again later.</x:String>
     <x:String x:Key="TxtOptiUninstallSuccess">OptiScaler uninstalled successfully.</x:String>
     <x:String x:Key="TxtOptiUninstallFail">Uninstall failed: {0}</x:String>
     <x:String x:Key="TxtInstallSuccessTitle">Installation Successful</x:String>
@@ -151,6 +159,9 @@
     <x:String x:Key="TxtAutoScanDesc">Automatically scan for games if the list is empty on startup.</x:String>
     <x:String x:Key="TxtAnimations">Enable animations</x:String>
     <x:String x:Key="TxtAnimationsDesc">Enable smooth transitions and animations throughout the interface</x:String>
+    <x:String x:Key="TxtBetaVersions">Prefer latest beta as default</x:String>
+    <x:String x:Key="TxtBetaVersionsDesc">When enabled, automatically selects the latest beta version instead of the stable release.</x:String>
+    <x:String x:Key="TxtBetaIncludesComponents">Beta versions already include Fakenvapi and NukemFG</x:String>
 
     <!-- Scan Sources -->
     <x:String x:Key="TxtManageScanSources">Manage Scan Sources</x:String>
@@ -173,5 +184,18 @@
     <x:String x:Key="TxtUpdateError">Update Error</x:String>
     <x:String x:Key="TxtNoUpdateFound">The application is already up to date.</x:String>
     <x:String x:Key="TxtUpdateCheckError">There was a problem checking for updates. Please try again later.</x:String>
+
+    <!-- BulkInstallWindow -->
+    <x:String x:Key="TxtBulkInstallWindow">Bulk Install OptiScaler</x:String>
+    <x:String x:Key="TxtSelectAll">Select All</x:String>
+    <x:String x:Key="TxtInstalled">Installed</x:String>
+    <x:String x:Key="TxtInstallationSettings">Installation Settings</x:String>
+    <x:String x:Key="TxtVersion">Version</x:String>
+    <x:String x:Key="TxtInstallFakenvapi">Fakenvapi</x:String>
+    <x:String x:Key="TxtInstallNukemFG">NukemFG</x:String>
+    <x:String x:Key="TxtCreateBackup">Create backup</x:String>
+    <x:String x:Key="TxtInstallSelected">Install Selected</x:String>
+    <x:String x:Key="TxtNoGames">No Games</x:String>
+    <x:String x:Key="TxtNoGamesFound">No games found. Please scan for games first.</x:String>
 
 </ResourceDictionary>

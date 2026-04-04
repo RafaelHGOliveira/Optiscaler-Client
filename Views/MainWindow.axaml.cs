@@ -34,7 +34,7 @@ namespace OptiscalerClient.Views
         private double _scanDotPhase = 0;
 
         private readonly GameAnalyzerService _analyzerService = new();
-        private readonly GameMetadataService _metadataService = new();
+        private GameMetadataService _metadataService = null!;
 
         private ListBox? _lstGames;
         private TextBlock? _txtStatus;
@@ -62,6 +62,7 @@ namespace OptiscalerClient.Views
             }
             _persistenceService = new GamePersistenceService();
             _componentService = new ComponentManagementService();
+            _metadataService = new GameMetadataService(_componentService);
             App.ChangeLanguage(_componentService.Config.Language);
             if (OperatingSystem.IsWindows())
             {
@@ -83,6 +84,12 @@ namespace OptiscalerClient.Views
             
             _componentService.OnStatusChanged += ComponentStatusChanged;
             this.Loaded += MainWindow_Loaded;
+            
+            // Restore window state
+            RestoreWindowState();
+            
+            // Handle window state changes
+            this.PropertyChanged += Window_PropertyChanged;
         }
 
         private void ComponentStatusChanged()
@@ -232,7 +239,40 @@ namespace OptiscalerClient.Views
             {
                 tglAnimations.IsChecked = _componentService.Config.AnimationsEnabled;
             }
-            _isInitializingLanguage = false;
+            var tglBetaVersions = this.FindControl<ToggleSwitch>("TglBetaVersions");
+            if (tglBetaVersions != null)
+            {
+                tglBetaVersions.IsChecked = _componentService.Config.ShowBetaVersions;
+            }
+
+            // Populate FSR4 INT8 default version selector
+            var cmbDefaultExtras = this.FindControl<ComboBox>("CmbDefaultExtrasVersion");
+            if (cmbDefaultExtras != null)
+            {
+                _isInitializingLanguage = true; // reuse flag to suppress SelectionChanged during init
+                cmbDefaultExtras.Items.Clear();
+                cmbDefaultExtras.Items.Add(new ComboBoxItem { Content = "None", Tag = "none" });
+                foreach (var ver in _componentService.ExtrasAvailableVersions)
+                {
+                    cmbDefaultExtras.Items.Add(new ComboBoxItem { Content = ver, Tag = ver });
+                }
+
+                var savedDefault = _componentService.Config.DefaultExtrasVersion;
+                cmbDefaultExtras.SelectedIndex = 0; // default: None
+                if (!string.IsNullOrEmpty(savedDefault) &&
+                    !savedDefault.Equals("none", StringComparison.OrdinalIgnoreCase))
+                {
+                    for (int i = 1; i < cmbDefaultExtras.Items.Count; i++)
+                    {
+                        if ((cmbDefaultExtras.Items[i] as ComboBoxItem)?.Tag?.ToString() == savedDefault)
+                        {
+                            cmbDefaultExtras.SelectedIndex = i;
+                            break;
+                        }
+                    }
+                }
+                _isInitializingLanguage = false;
+            }
         }
 
         private void CmbLanguage_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -281,6 +321,27 @@ namespace OptiscalerClient.Views
                 _componentService.Config.AnimationsEnabled = tgl.IsChecked ?? true;
                 _componentService.SaveConfiguration();
                 UpdateAnimationsState(_componentService.Config.AnimationsEnabled);
+            }
+        }
+
+        private void TglBetaVersions_IsCheckedChanged(object sender, RoutedEventArgs e)
+        {
+            if (_isInitializingLanguage) return;
+            if (sender is ToggleSwitch tgl)
+            {
+                _componentService.Config.ShowBetaVersions = tgl.IsChecked ?? true;
+                _componentService.SaveConfiguration();
+            }
+        }
+
+        private void CmbDefaultExtrasVersion_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isInitializingLanguage) return;
+            if (sender is ComboBox cmb && cmb.SelectedItem is ComboBoxItem item)
+            {
+                var ver = item.Tag?.ToString() ?? "none";
+                _componentService.Config.DefaultExtrasVersion = ver.Equals("none", StringComparison.OrdinalIgnoreCase) ? null : ver;
+                _componentService.SaveConfiguration();
             }
         }
 
@@ -678,22 +739,47 @@ namespace OptiscalerClient.Views
                 }
                 catch (Exception ex)
                 {
-                    await new ConfirmDialog(this, GetResourceString("TxtError", "Error"), ex.Message).ShowDialog<object>(this);
+                    await new ConfirmDialog(this, GetResourceString("TxtError", "Error"), ex.Message, isAlert: true).ShowDialog<object>(this);
                 }
+            }
+        }
+
+        private async void BtnBulkInstall_Click(object sender, RoutedEventArgs e)
+        {
+            if (_games.Count == 0)
+            {
+                await new ConfirmDialog(
+                    this,
+                    GetResourceString("TxtNoGames", "No Games"),
+                    GetResourceString("TxtNoGamesFound", "No games found. Please scan for games first."),
+                    isAlert: true
+                ).ShowDialog<bool>(this);
+                return;
+            }
+
+            var installService = new GameInstallationService();
+            var bulkWindow = new BulkInstallWindow(_componentService, installService, _games.ToList());
+            await bulkWindow.ShowDialog<object>(this);
+
+            // Refresh game list after bulk install
+            if (_lstGames != null)
+            {
+                _lstGames.ItemsSource = null;
+                _lstGames.ItemsSource = _games;
             }
         }
 
         private async void BtnManage_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is Button button && button.DataContext is Game game)
+            if (sender is Button button && button.DataContext is Game selectedGame)
             {
-                var manageWindow = new ManageGameWindow(this, game);
+                var manageWindow = new ManageGameWindow(this, selectedGame);
                 await manageWindow.ShowDialog<object>(this);
 
-                var index = _games.IndexOf(game);
+                var index = _games.IndexOf(selectedGame);
                 if (index != -1)
                 {
-                    _games[index] = game;
+                    _games[index] = selectedGame;
                     _persistenceService.SaveGames(_games);
                 }
 
@@ -701,6 +787,170 @@ namespace OptiscalerClient.Views
                 {
                     _lstGames.ItemsSource = null;
                     _lstGames.ItemsSource = _games;
+                }
+            }
+        }
+
+        private void BtnFastInstall_Loaded(object? sender, RoutedEventArgs e)
+        {
+            if (sender is Button button && button.DataContext is Game game)
+            {
+                UpdateFastInstallButton(button, game);
+            }
+        }
+
+        private void UpdateFastInstallButton(Button button, Game game)
+        {
+            if (game.IsOptiscalerInstalled)
+            {
+                button.Content = "🗑️ Quick Uninstall";
+                button.Foreground = this.FindResource("BrAccentWarm") as IBrush ?? Brushes.Orange;
+            }
+            else
+            {
+                button.Content = "✦ Quick Install";
+                button.Foreground = this.FindResource("BrAccent") as IBrush ?? Brushes.Purple;
+            }
+        }
+
+        private async void BtnFastInstall_Click(object? sender, RoutedEventArgs e)
+        {
+            if (sender is Button button && button.DataContext is Game selectedGame)
+            {
+                try
+                {
+                    // Check if OptiScaler is already installed
+                    if (selectedGame.IsOptiscalerInstalled)
+                    {
+                        // Uninstall OptiScaler directly without confirmation
+                        var installService = new GameInstallationService();
+                        installService.UninstallOptiScaler(selectedGame);
+                        
+                        // Update game status
+                        selectedGame.IsOptiscalerInstalled = false;
+                        selectedGame.OptiscalerVersion = null;
+                        
+                        // Refresh UI
+                        if (_lstGames != null)
+                        {
+                            _lstGames.ItemsSource = null;
+                            _lstGames.ItemsSource = _games;
+                        }
+                        
+                        _persistenceService.SaveGames(_games);
+                    }
+                    else
+                    {
+                        // Install OptiScaler
+                        var installService = new GameInstallationService();
+                        
+                        // Determine version to install based on beta setting
+                        string versionToInstall;
+                        
+                        if (_componentService.Config.ShowBetaVersions)
+                        {
+                            // Install latest beta
+                            versionToInstall = _componentService.LatestBetaVersion ?? "";
+                        }
+                        else
+                        {
+                            // Install latest stable (use the version marked as latest in GitHub)
+                            versionToInstall = _componentService.LatestStableVersion ?? "";
+                        }
+                        
+                        if (string.IsNullOrEmpty(versionToInstall))
+                        {
+                            await new ConfirmDialog(
+                                this,
+                                GetResourceString("TxtNoVersions", "No Versions Available"),
+                                GetResourceString("TxtNoVersionsFound", "No OptiScaler versions are available for installation."),
+                                isAlert: true
+                            ).ShowDialog<bool>(this);
+                            return;
+                        }
+                        
+                        // Get cache paths
+                        var optiCacheDir = _componentService.GetOptiScalerCachePath(versionToInstall);
+                        
+                        // Download OptiScaler if not in cache
+                        if (!Directory.Exists(optiCacheDir) || Directory.GetFiles(optiCacheDir, "*.*", SearchOption.AllDirectories).Length == 0)
+                        {
+                            // Show downloading dialog
+                            var downloadDialog = new ConfirmDialog(
+                                this,
+                                "Downloading OptiScaler",
+                                $"Downloading OptiScaler {versionToInstall}...\nPlease wait.",
+                                isAlert: true
+                            );
+                            
+                            // Start download in background
+                            var downloadTask = _componentService.DownloadOptiScalerAsync(versionToInstall);
+                            
+                            // Show dialog without blocking
+                            var dialogTask = downloadDialog.ShowDialog<bool>(this);
+                            
+                            try
+                            {
+                                // Wait for download to complete
+                                await downloadTask;
+                                
+                                // Close dialog after download completes
+                                downloadDialog.Close();
+                            }
+                            catch (Exception downloadEx)
+                            {
+                                // Close downloading dialog
+                                downloadDialog.Close();
+                                
+                                // Show error dialog
+                                await new ConfirmDialog(
+                                    this,
+                                    GetResourceString("TxtError", "Error"),
+                                    $"Failed to download OptiScaler {versionToInstall}: {downloadEx.Message}",
+                                    isAlert: true
+                                ).ShowDialog<bool>(this);
+                                return;
+                            }
+                        }
+                        
+                        var fakeCacheDir = _componentService.GetFakenvapiCachePath();
+                        var nukemCacheDir = _componentService.GetNukemFGCachePath();
+                        
+                        // Install with default settings (backup always enabled)
+                        // Always install Fakenvapi and NukemFG by default
+                        installService.InstallOptiScaler(
+                            selectedGame,
+                            optiCacheDir,
+                            "dxgi.dll",
+                            installFakenvapi: true, // Always install Fakenvapi
+                            fakenvapiCachePath: fakeCacheDir,
+                            installNukemFG: true,  // Always install NukemFG
+                            nukemFGCachePath: nukemCacheDir,
+                            optiscalerVersion: versionToInstall
+                        );
+                        
+                        // Update game status
+                        selectedGame.IsOptiscalerInstalled = true;
+                        selectedGame.OptiscalerVersion = versionToInstall;
+                        
+                        // Refresh UI
+                        if (_lstGames != null)
+                        {
+                            _lstGames.ItemsSource = null;
+                            _lstGames.ItemsSource = _games;
+                        }
+                        
+                        _persistenceService.SaveGames(_games);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    await new ConfirmDialog(
+                        this,
+                        GetResourceString("TxtError", "Error"),
+                        ex.Message,
+                        isAlert: true
+                    ).ShowDialog<bool>(this);
                 }
             }
         }
@@ -832,6 +1082,64 @@ namespace OptiscalerClient.Views
             _scanDotTimer?.Stop();
             _scanDotTimer = null;
         }
+
+        #region Window State Persistence
+
+        private void RestoreWindowState()
+        {
+            var config = _componentService.Config;
+            
+            // Restore window size
+            if (config.WindowWidth > 0 && config.WindowHeight > 0)
+            {
+                this.Width = config.WindowWidth;
+                this.Height = config.WindowHeight;
+            }
+            
+            // Restore window position (only if valid)
+            if (!double.IsNaN(config.WindowLeft) && !double.IsNaN(config.WindowTop) &&
+                config.WindowLeft >= 0 && config.WindowTop >= 0)
+            {
+                this.Position = new PixelPoint((int)config.WindowLeft, (int)config.WindowTop);
+            }
+            
+            // Restore maximized state
+            if (config.WindowMaximized)
+            {
+                this.WindowState = WindowState.Maximized;
+            }
+        }
+
+        private void Window_PropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
+        {
+            // Save window state on any relevant property change
+            SaveWindowState();
+        }
+
+        private void SaveWindowState()
+        {
+            var config = _componentService.Config;
+            
+            // Save window size
+            if (this.WindowState != WindowState.Maximized)
+            {
+                config.WindowWidth = this.Width;
+                config.WindowHeight = this.Height;
+            }
+            
+            // Save window position
+            var position = this.Position;
+            config.WindowLeft = position.X;
+            config.WindowTop = position.Y;
+            
+            // Save maximized state
+            config.WindowMaximized = this.WindowState == WindowState.Maximized;
+            
+            // Save configuration
+            _componentService.SaveConfiguration();
+        }
+
+        #endregion
 
         private string GetResourceString(string key, string fallback)
         {

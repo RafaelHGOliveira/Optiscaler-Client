@@ -1,6 +1,6 @@
-# ✦ OptiScaler Client
+﻿# ✦ OptiScaler Client
 
-[![GitHub Release](https://img.shields.io/github/v/release/Agustinm28/Optiscaler-Client?style=flat-square&color=8A2BE2)](https://github.com/Agustinm28/Optiscaler-Client/releases/tag/OptiscalerClient-1.0.2)
+[![GitHub Release](https://img.shields.io/github/v/release/Agustinm28/Optiscaler-Client?style=flat-square&color=8A2BE2)](https://github.com/Agustinm28/Optiscaler-Client/releases/tag/OptiscalerClient-1.0.3)
 [![License: GPL](https://img.shields.io/badge/License-GPL-yellow.svg?style=flat-square)](LICENSE)
 [![Platform: Windows](https://img.shields.io/badge/Platform-Windows-0078D4?style=flat-square&logo=windows)](https://www.microsoft.com/windows)
 
@@ -14,15 +14,15 @@
 
 * Main window
 
-<img width="1282" height="752" alt="1 0 2_A" src="https://github.com/user-attachments/assets/89a78272-a0fc-4c7e-ad52-916c51f8d986" />
+<img width="1266" height="752" alt="1 0 3_A" src="https://github.com/user-attachments/assets/09b0706a-e047-485c-9ac7-0847d80a3fc5" />
 
 * Game management
 
-<img width="1278" height="751" alt="1 0 2_B" src="https://github.com/user-attachments/assets/4ea2deef-02ae-4831-8c9c-a5b1d5047f83" />
+<img width="1266" height="751" alt="1 0 3_B" src="https://github.com/user-attachments/assets/b4c86a32-13df-4ae2-921e-b89aacb7dfa1" />
 
 * Main window after installation
 
-<img width="1282" height="752" alt="1 0 2_C" src="https://github.com/user-attachments/assets/6abf6add-f316-4491-8b04-7f8b443b5136" />
+<img width="1266" height="752" alt="1 0 3_C" src="https://github.com/user-attachments/assets/e88307c8-13af-4401-90a0-a6daaf8a4977" />
 
 ---
 
@@ -30,7 +30,7 @@
 
 *   **Auto-Scanner**: Deeply scans Steam, Epic Games, GOG, EA, Ubisoft, Battle.net, and Xbox libraries to find your games instantly.
 *   **One-Click Install**: Automatically downloads and configures the latest OptiScaler versions for specific titles.
-*   **Component Control**: Manage additional tools like **Fakenvapi** (for AMD/Intel GPUs) and **Nukem's DLSSG-to-FSR3** mod.
+*   **Component Control**: Manage additional tools like **Fakenvapi** (for AMD/Intel GPUs), **Nukem's DLSSG-to-FSR3** mod, and **FSR 4 INT8** injection for non-RDNA 4 GPUs.
 *   **Cache Management**: Keep your storage clean by managing different downloaded mod versions.
 *   **Localization**: Full support for Multiple languages (English, Spanish & Brazilian Portuguese).
 *   **Native Performance**: Fully self-contained, single-file executable for a zero-footprint installation.

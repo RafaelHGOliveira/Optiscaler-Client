@@ -7,6 +7,14 @@
         "RepoOwner": "optiscaler",
         "RepoName": "OptiScaler"
     },
+    "OptiScalerBetas": {
+        "RepoOwner": "Agustinm28",
+        "RepoName": "OptiScaler-Betas"
+    },
+    "OptiScalerExtras": {
+        "RepoOwner": "Agustinm28",
+        "RepoName": "OptiScaler-Extras"
+    },
     "Fakenvapi": {
         "RepoOwner": "optiscaler",
         "RepoName": "fakenvapi"
@@ -29,5 +37,6 @@
             "PathSegment": "GameSave"
         }
     ],
+    "SteamGridDBApiKey": "",
     "Debug": false
 }

@@ -11,6 +11,8 @@ public class GameAnalyzerService
     private static readonly string[] _fsrNames = new[] {
         "amd_fidelityfx_dx12.dll",
         "amd_fidelityfx_vk.dll",
+        "amd_fidelityfx_upscaler_dx12.dll",
+        "amd_fidelityfx_loader_dx12.dll",
         "ffx_fsr2_api_x64.dll",
         "ffx_fsr2_api_dx12_x64.dll",
         "ffx_fsr2_api_vk_x64.dll",

@@ -8,7 +8,7 @@
         mc:Ignorable="d"
         x:Class="OptiscalerClient.Views.ManageGameWindow"
         Title="{DynamicResource TxtManageGameWindow}"
-        Height="540" Width="960"
+        Height="618" Width="1080"
         SystemDecorations="None"
         TransparencyLevelHint="Transparent"
         Background="Transparent"
@@ -231,30 +231,111 @@
                         BorderThickness="0,1,0,0"
                         CornerRadius="0,0,12,12"
                         Padding="24,16">
-                    <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,Auto,*">
+                    <Grid RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="Auto,Auto,*">
 
-                        <!-- Row 0, Col 0: Version selector -->
-                        <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Margin="0,0,0,10" VerticalAlignment="Center">
+                        <!-- Row 0: Beta info panel spanning all columns (appears at the top) -->
+                        <Border Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3"
+                                Name="BetaInfoPanel"
+                                Background="{StaticResource BrBgElevated}"
+                                BorderBrush="#4A90E2"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                Padding="12,8"
+                                Margin="0,0,0,12"
+                                IsVisible="False">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="ℹ"
+                                           Foreground="#4A90E2"
+                                           FontSize="14"
+                                           FontWeight="Bold"
+                                           VerticalAlignment="Center"/>
+                                <TextBlock Text="{DynamicResource TxtBetaIncludesComponents}"
+                                           Foreground="#4A90E2"
+                                           FontSize="12"
+                                           FontWeight="Medium"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Row 1, Col 0: Version selector -->
+                        <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" Margin="0,0,0,10" VerticalAlignment="Center">
                             <TextBlock Text="{DynamicResource TxtVersionLbl}"
                                        Foreground="{StaticResource BrTextSecondary}"
                                        VerticalAlignment="Center"
                                        FontSize="{StaticResource FontSizeBody}"
                                        Width="65"/>
                             <ComboBox Name="CmbOptiVersion"
-                                      Width="180"
+                                      Width="185"
                                       Classes="BtnSelector"
                                       SelectedIndex="0"
+                                      HorizontalContentAlignment="Left"
                                       VerticalContentAlignment="Center" />
+                            <Border Background="{StaticResource BrBgElevated}"
+                                    BorderBrush="{StaticResource BrBorderSubtle}"
+                                    BorderThickness="1" CornerRadius="8"
+                                    Width="16" Height="16"
+                                    Margin="10,0,0,0"
+                                    ToolTip.ShowDelay="100" Cursor="Help"
+                                    ToolTip.Tip="{DynamicResource TxtTooltipOptiScalerVersion}">
+                                <TextBlock Text="?" Foreground="{StaticResource BrTextSecondary}"
+                                            FontSize="10" FontWeight="Bold"
+                                            HorizontalAlignment="Center" VerticalAlignment="Center"
+                                            Margin="0,-1,0,0"/>
+                            </Border>
                         </StackPanel>
 
-                        <!-- Vertical divider spanning both rows -->
-                        <Border Grid.Row="0" Grid.RowSpan="2" Grid.Column="1"
+                        <!-- Row 1, Col 2: Fakenvapi only -->
+                        <StackPanel Grid.Row="1" Grid.Column="2" Orientation="Horizontal" Margin="0,0,0,10" VerticalAlignment="Center">
+                            <CheckBox Name="ChkInstallFakenvapi"
+                                      Content="Fakenvapi"
+                                      VerticalAlignment="Center"/>
+                            <Border Background="{StaticResource BrBgElevated}" BorderBrush="{StaticResource BrBorderSubtle}" BorderThickness="1" CornerRadius="8" Width="16" Height="16" Margin="6,0,0,0" ToolTip.ShowDelay="100" Cursor="Help" ToolTip.Tip="{DynamicResource TxtFakenvapiHelpTip}">
+                                <TextBlock Text="?" Foreground="{StaticResource BrTextSecondary}" FontSize="10" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-1,0,0"/>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- Vertical divider spanning rows 1, 2 and 3 -->
+                        <Border Grid.Row="1" Grid.RowSpan="3" Grid.Column="1"
                                 Width="1"
                                 Background="{StaticResource BrBorderSubtle}"
                                 Margin="20,0"/>
 
-                        <!-- Row 0, Col 2: NukemFG (left) + Uninstall button (right) -->
-                        <Grid Grid.Row="0" Grid.Column="2" ColumnDefinitions="*,Auto" Margin="0,0,0,10" VerticalAlignment="Center">
+                        <!-- Row 2, Col 0: Injector selector -->
+                        <StackPanel Grid.Row="2" Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="{DynamicResource TxtInjectionLbl}"
+                                       Foreground="{StaticResource BrTextSecondary}"
+                                       VerticalAlignment="Center"
+                                       FontSize="{StaticResource FontSizeBody}"
+                                       Width="65"/>
+                            <ComboBox Name="CmbInjectionMethod"
+                                      Width="185"
+                                      Classes="BtnSelector"
+                                      SelectedIndex="0"
+                                      VerticalContentAlignment="Center">
+                                <ComboBoxItem Content="dxgi.dll"     Tag="dxgi.dll"/>
+                                <ComboBoxItem Content="winmm.dll"    Tag="winmm.dll"/>
+                                <ComboBoxItem Content="d3d12.dll"    Tag="d3d12.dll"/>
+                                <ComboBoxItem Content="dbghelp.dll"  Tag="dbghelp.dll"/>
+                                <ComboBoxItem Content="version.dll"  Tag="version.dll"/>
+                                <ComboBoxItem Content="wininet.dll"  Tag="wininet.dll"/>
+                                <ComboBoxItem Content="winhttp.dll"  Tag="winhttp.dll"/>
+                            </ComboBox>
+                            <Border Background="{StaticResource BrBgElevated}"
+                                    BorderBrush="{StaticResource BrBorderSubtle}"
+                                    BorderThickness="1" CornerRadius="8"
+                                    Width="16" Height="16"
+                                    Margin="10,0,0,0"
+                                    ToolTip.ShowDelay="100" Cursor="Help"
+                                    ToolTip.Tip="{DynamicResource TxtTooltipInjectionMethod}">
+                                <TextBlock Text="?" Foreground="{StaticResource BrTextSecondary}"
+                                            FontSize="10" FontWeight="Bold"
+                                            HorizontalAlignment="Center" VerticalAlignment="Center"
+                                            Margin="0,-1,0,0"/>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- Row 2, Col 2: NukemFG (left) + Uninstall button (right) -->
+                        <Grid Grid.Row="2" Grid.Column="2" ColumnDefinitions="*,Auto" VerticalAlignment="Center">
                             <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                                 <CheckBox Name="ChkInstallNukemFG"
                                           Content="NukemFG"
@@ -272,52 +353,51 @@
                                     Click="BtnUninstall_Click"/>
                         </Grid>
 
-                        <!-- Row 1, Col 0: Injector selector -->
-                        <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="{DynamicResource TxtInjectionLbl}"
+                        <!-- Row 3, Col 0: FSR4 INT8 version selector -->
+                        <StackPanel Grid.Row="3" Grid.Column="0" Orientation="Horizontal"
+                                    Margin="0,12,0,0" VerticalAlignment="Center">
+                            <TextBlock Text="FSR4 INT8:"
                                        Foreground="{StaticResource BrTextSecondary}"
                                        VerticalAlignment="Center"
                                        FontSize="{StaticResource FontSizeBody}"
-                                       Width="65"/>
-                            <ComboBox Name="CmbInjectionMethod"
-                                      Width="130"
+                                       Margin="0,0,8,0"/>
+                            <ComboBox Name="CmbExtrasVersion"
+                                      Width="170"
                                       Classes="BtnSelector"
-                                      SelectedIndex="0"
-                                      VerticalContentAlignment="Center">
-                                <ComboBoxItem Content="dxgi.dll"     Tag="dxgi.dll"/>
-                                <ComboBoxItem Content="winmm.dll"    Tag="winmm.dll"/>
-                                <ComboBoxItem Content="d3d12.dll"    Tag="d3d12.dll"/>
-                                <ComboBoxItem Content="dbghelp.dll"  Tag="dbghelp.dll"/>
-                                <ComboBoxItem Content="version.dll"  Tag="version.dll"/>
-                                <ComboBoxItem Content="wininet.dll"  Tag="wininet.dll"/>
-                                <ComboBoxItem Content="winhttp.dll"  Tag="winhttp.dll"/>
-                            </ComboBox>
+                                      Padding="8,0,24,0"
+                                      HorizontalContentAlignment="Left"
+                                      VerticalContentAlignment="Center" />
+                            <Border Background="{StaticResource BrBgElevated}"
+                                    BorderBrush="{StaticResource BrBorderSubtle}"
+                                    BorderThickness="1" CornerRadius="8"
+                                    Width="16" Height="16"
+                                    Margin="10,0,0,0"
+                                    ToolTip.ShowDelay="100" Cursor="Help"
+                                    ToolTip.Tip="{DynamicResource TxtTooltipFsr4Int8}">
+                                <TextBlock Text="?" Foreground="{StaticResource BrTextSecondary}"
+                                           FontSize="10" FontWeight="Bold"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           Margin="0,-1,0,0"/>
+                            </Border>
                         </StackPanel>
 
-                        <!-- Row 1, Col 2: Fakenvapi (left) + install buttons (right) -->
-                        <Grid Grid.Row="1" Grid.Column="2" ColumnDefinitions="*,Auto" VerticalAlignment="Center">
-                            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                                <CheckBox Name="ChkInstallFakenvapi"
-                                          Content="Fakenvapi"
-                                          VerticalAlignment="Center"/>
-                                <Border Background="{StaticResource BrBgElevated}" BorderBrush="{StaticResource BrBorderSubtle}" BorderThickness="1" CornerRadius="8" Width="16" Height="16" Margin="6,0,0,0" ToolTip.ShowDelay="100" Cursor="Help" ToolTip.Tip="{DynamicResource TxtFakenvapiHelpTip}">
-                                    <TextBlock Text="?" Foreground="{StaticResource BrTextSecondary}" FontSize="10" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-1,0,0"/>
-                                </Border>
-                            </StackPanel>
-                            <StackPanel Grid.Column="1" Orientation="Horizontal" Name="InstallBtnGroup">
-                                <Button Name="BtnInstallManual"
-                                        Content="{DynamicResource TxtBtnManualInstall}"
-                                        Classes="BtnSuccess"
-                                        Padding="18,8"
-                                        Margin="0,0,10,0"
-                                        Click="BtnInstallManual_Click"/>
-                                <Button Name="BtnInstall"
-                                        Content="{DynamicResource TxtInstallOpti}"
-                                        Classes="BtnSuccess"
-                                        Padding="18,8"
-                                        Click="BtnInstall_Click"/>
-                            </StackPanel>
-                        </Grid>
+                        <!-- Row 3, Col 2: Install buttons -->
+                        <StackPanel Grid.Row="3" Grid.Column="2" Orientation="Horizontal"
+                                    Margin="0,4,0,0" VerticalAlignment="Center"
+                                    HorizontalAlignment="Right"
+                                    Name="InstallBtnGroup">
+                            <Button Name="BtnInstallManual"
+                                    Content="{DynamicResource TxtBtnManualInstall}"
+                                    Classes="BtnSuccess"
+                                    Padding="18,8"
+                                    Margin="0,0,10,0"
+                                    Click="BtnInstallManual_Click"/>
+                            <Button Name="BtnInstall"
+                                    Content="{DynamicResource TxtInstallOpti}"
+                                    Classes="BtnSuccess"
+                                    Padding="18,8"
+                                    Click="BtnInstall_Click"/>
+                        </StackPanel>
                     </Grid>
                 </Border>
             </Grid>
