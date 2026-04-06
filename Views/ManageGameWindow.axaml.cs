@@ -339,6 +339,20 @@ namespace OptiscalerClient.Views
                     currentIndex++;
                 }
 
+                // Override with user-configured default version if set
+                var configDefault = componentService.Config.DefaultOptiScalerVersion;
+                if (!string.IsNullOrEmpty(configDefault))
+                {
+                    for (int i = 0; i < cmbOptiVersion.Items.Count; i++)
+                    {
+                        if (cmbOptiVersion.Items[i] is ComboBoxItem ci && string.Equals(ci.Tag?.ToString(), configDefault, StringComparison.OrdinalIgnoreCase))
+                        {
+                            selectedIndex = i;
+                            break;
+                        }
+                    }
+                }
+
                 cmbOptiVersion.SelectedIndex = selectedIndex;
 
                 // Update checkbox states based on initial selection

@@ -76,6 +76,11 @@ namespace OptiscalerClient.Models
         /// Null or "none" means "do not inject".
         /// </summary>
         public string? DefaultExtrasVersion { get; set; } = null;
+        /// <summary>
+        /// The default OptiScaler version to pre-select in ManageGameWindow / Quick Install.
+        /// Null or "auto" means let the app choose the recommended/latest version automatically.
+        /// </summary>
+        public string? DefaultOptiScalerVersion { get; set; } = null;
         public ScanSourcesConfig ScanSources { get; set; } = new();
         public string SteamGridDBApiKey { get; set; } = string.Empty;
         public List<ScanExclusion> ScanExclusions { get; set; } = new();

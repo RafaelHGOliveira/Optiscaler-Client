@@ -615,6 +615,14 @@ namespace OptiscalerClient.Views
             }
 
             PopulateDefaultGpuComboBox();
+
+            // Populate OptiScaler default version selector
+            // Restore to whichever channel the saved version belongs to
+            var savedOptiDefault = _componentService.Config.DefaultOptiScalerVersion;
+            bool savedIsBeta = !string.IsNullOrEmpty(savedOptiDefault) && _componentService.BetaVersions.Contains(savedOptiDefault);
+            _optiDefaultShowingBeta = savedIsBeta;
+            UpdateOptiDefaultChannelButtons();
+            PopulateDefaultOptiScalerVersionCombo(showBeta: savedIsBeta, restoreSaved: true);
         }
 
         private void CmbLanguage_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -1498,6 +1506,137 @@ namespace OptiscalerClient.Views
             if (sender is ToggleSwitch tgl)
             {
                 _componentService.Config.ShowBetaVersions = tgl.IsChecked ?? true;
+                _componentService.SaveConfiguration();
+            }
+        }
+
+        private void CmbDefaultOptiScalerVersion_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isInitializingLanguage) return;
+            if (sender is ComboBox cmb && cmb.SelectedItem is ComboBoxItem item)
+            {
+                var ver = item.Tag?.ToString();
+                _componentService.Config.DefaultOptiScalerVersion = string.IsNullOrEmpty(ver) ? null : ver;
+                _componentService.SaveConfiguration();
+            }
+        }
+
+        private bool _optiDefaultShowingBeta = false;
+
+        private void BtnOptiDefaultStable_Click(object? sender, RoutedEventArgs e)
+        {
+            if (!_optiDefaultShowingBeta) return;
+            _optiDefaultShowingBeta = false;
+            UpdateOptiDefaultChannelButtons();
+            PopulateDefaultOptiScalerVersionCombo(showBeta: false, restoreSaved: false);
+        }
+
+        private void BtnOptiDefaultBeta_Click(object? sender, RoutedEventArgs e)
+        {
+            if (_optiDefaultShowingBeta) return;
+            _optiDefaultShowingBeta = true;
+            UpdateOptiDefaultChannelButtons();
+            PopulateDefaultOptiScalerVersionCombo(showBeta: true, restoreSaved: false);
+        }
+
+        private void UpdateOptiDefaultChannelButtons()
+        {
+            var btnStable = this.FindControl<Button>("BtnOptiDefaultStable");
+            var btnBeta   = this.FindControl<Button>("BtnOptiDefaultBeta");
+            if (btnStable == null || btnBeta == null) return;
+            if (_optiDefaultShowingBeta)
+            {
+                btnStable.Classes.Remove("BtnPrimary");   btnStable.Classes.Add("BtnSecondary");
+                btnBeta.Classes.Remove("BtnSecondary");   btnBeta.Classes.Add("BtnPrimary");
+            }
+            else
+            {
+                btnStable.Classes.Remove("BtnSecondary"); btnStable.Classes.Add("BtnPrimary");
+                btnBeta.Classes.Remove("BtnPrimary");     btnBeta.Classes.Add("BtnSecondary");
+            }
+        }
+
+        private void PopulateDefaultOptiScalerVersionCombo(bool showBeta, bool restoreSaved)
+        {
+            var cmb = this.FindControl<ComboBox>("CmbDefaultOptiScalerVersion");
+            if (cmb == null) return;
+
+            _isInitializingLanguage = true;
+            cmb.Items.Clear();
+
+            var allVersions = _componentService.OptiScalerAvailableVersions;
+            var betaSet      = _componentService.BetaVersions;
+            var latestStable = _componentService.LatestStableVersion;
+            var latestBeta   = _componentService.LatestBetaVersion;
+
+            foreach (var ver in allVersions)
+            {
+                bool isBeta = betaSet.Contains(ver);
+                if (isBeta != showBeta) continue;
+
+                bool isLatestInChannel = showBeta
+                    ? ver == latestBeta
+                    : ver == latestStable;
+
+                ComboBoxItem cbi;
+                if (isLatestInChannel)
+                {
+                    var stack = new StackPanel
+                    {
+                        Orientation = Avalonia.Layout.Orientation.Horizontal,
+                        Spacing = 6,
+                        VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+                    };
+                    stack.Children.Add(new TextBlock { Text = ver, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center });
+                    stack.Children.Add(new Border
+                    {
+                        CornerRadius = new Avalonia.CornerRadius(4),
+                        Background = new Avalonia.Media.SolidColorBrush(Avalonia.Media.Color.Parse("#7C3AED")),
+                        Padding = new Avalonia.Thickness(5, 1),
+                        Child = new TextBlock
+                        {
+                            Text = "LATEST",
+                            FontSize = 10,
+                            Foreground = Avalonia.Media.Brushes.White,
+                            FontWeight = Avalonia.Media.FontWeight.Bold,
+                            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+                        }
+                    });
+                    cbi = new ComboBoxItem { Content = stack, Tag = ver };
+                }
+                else
+                {
+                    cbi = new ComboBoxItem { Content = ver, Tag = ver };
+                }
+                cmb.Items.Add(cbi);
+            }
+
+            // Default to the first item (latest in channel); restore saved if requested
+            cmb.SelectedIndex = cmb.Items.Count > 0 ? 0 : -1;
+            if (restoreSaved)
+            {
+                var saved = _componentService.Config.DefaultOptiScalerVersion;
+                if (!string.IsNullOrEmpty(saved) && !saved.Equals("auto", StringComparison.OrdinalIgnoreCase))
+                {
+                    for (int i = 0; i < cmb.Items.Count; i++)
+                    {
+                        if ((cmb.Items[i] as ComboBoxItem)?.Tag?.ToString() == saved)
+                        {
+                            cmb.SelectedIndex = i;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            _isInitializingLanguage = false;
+
+            // If this was a channel switch (not a restore), persist the implicit selection
+            // so that ManageGameWindow and BulkInstallWindow can read it.
+            if (!restoreSaved && cmb.SelectedItem is ComboBoxItem implicitItem)
+            {
+                var implicitVer = implicitItem.Tag?.ToString();
+                _componentService.Config.DefaultOptiScalerVersion = string.IsNullOrEmpty(implicitVer) ? null : implicitVer;
                 _componentService.SaveConfiguration();
             }
         }
@@ -3270,7 +3409,10 @@ namespace OptiscalerClient.Views
             stack.Children.Add(dots);
 
             button.Content = stack;
-            button.IsEnabled = false;
+            // Don't set IsEnabled = false (styles make it very transparent);
+            // make it non-interactive via hit testing and keep full opacity so animation remains visible.
+            button.IsHitTestVisible = false;
+            button.Opacity = 1.0;
             button.Foreground = this.FindResource("BrTextSecondary") as IBrush ?? Brushes.Gray;
 
             if (_quickInstallDotTimers.TryGetValue(button, out var existing))
@@ -3297,7 +3439,9 @@ namespace OptiscalerClient.Views
 
         private void ClearQuickInstallLoading(Button button, Game game)
         {
-            button.IsEnabled = true;
+            // Restore interactivity and visual state
+            button.IsHitTestVisible = true;
+            button.Opacity = 1.0;
             UpdateFastInstallButton(button, game);
 
             if (_quickInstallDotTimers.TryGetValue(button, out var timer))
@@ -3345,17 +3489,20 @@ namespace OptiscalerClient.Views
                         // Install OptiScaler
                         var installService = new GameInstallationService();
 
-                        // Determine version to install based on beta setting
+                        // Determine version to install: use configured default, fall back to latest per channel
                         string versionToInstall;
 
-                        if (_componentService.Config.ShowBetaVersions)
+                        var configuredDefault = _componentService.Config.DefaultOptiScalerVersion;
+                        if (!string.IsNullOrEmpty(configuredDefault))
                         {
-                            // Install latest beta
+                            versionToInstall = configuredDefault;
+                        }
+                        else if (_componentService.Config.ShowBetaVersions)
+                        {
                             versionToInstall = _componentService.LatestBetaVersion ?? "";
                         }
                         else
                         {
-                            // Install latest stable (use the version marked as latest in GitHub)
                             versionToInstall = _componentService.LatestStableVersion ?? "";
                         }
 
