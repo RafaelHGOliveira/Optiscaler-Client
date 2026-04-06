@@ -22,6 +22,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Media.TextFormatting;
+using Avalonia.Media.Transformation;
 using Avalonia.Threading;
 using OptiscalerClient.Models;
 using OptiscalerClient.Services;
@@ -77,10 +78,37 @@ namespace OptiscalerClient.Views
         private Button? _btnScan;
         private Button? _btnViewList;
         private Button? _btnViewGrid;
+        private Button? _btnEditMode;
+        private Border? _editModeBanner;
         private Grid? _overlayScanning;
         private TextBox? _txtSearch;
         private TextBlock? _txtSearchPlaceholder;
         private TextBlock? _txtGpuInfo;
+        private bool _isEditMode = false;
+        private Game? _draggedGame;
+
+        // Custom pointer-drag state
+        private Canvas? _dragGhostCanvas;
+        private Border? _dragGhost;
+        private Border? _dragInsertLine;
+        private bool _isDragging = false;
+        private Point _dragStartPos;
+        private Point _ghostOffset;
+        private int _currentDropIndex = -1;
+        private int _lastAnimatedDropIndex = -2;
+        private Control? _dragCaptureControl;
+        private ListBoxItem? _dragSourceContainer;
+        private List<double> _itemLayoutTops = new();
+        private double _itemLayoutHeight = 0;
+
+        // Grid-view drag animation layout data
+        private int _gridColCount = 0;
+        private double _gridItemWidth = 0;
+        private double _gridItemHeight = 0;
+        private double _gridHGap = 0;
+        private double _gridVGap = 0;
+        private double _gridOriginX = 0;
+        private double _gridOriginY = 0;
 
         private void InitializeComponent()
         {
@@ -162,6 +190,9 @@ namespace OptiscalerClient.Views
             _btnScan = this.FindControl<Button>("BtnScan");
             _btnViewList = this.FindControl<Button>("BtnViewList");
             _btnViewGrid = this.FindControl<Button>("BtnViewGrid");
+            _btnEditMode = this.FindControl<Button>("BtnEditMode");
+            _editModeBanner = this.FindControl<Border>("EditModeBanner");
+            _dragGhostCanvas = this.FindControl<Canvas>("DragGhostCanvas");
             _overlayScanning = this.FindControl<Grid>("OverlayScanning");
             _txtSearch = this.FindControl<TextBox>("TxtSearch");
             _txtSearchPlaceholder = this.FindControl<TextBlock>("TxtSearchPlaceholder");
@@ -324,9 +355,15 @@ namespace OptiscalerClient.Views
         {
             if (_allGames == null) return;
 
-            var filtered = string.IsNullOrWhiteSpace(searchText)
+            // In edit mode show all games (including hidden) so the user can reveal them.
+            // In normal mode exclude hidden games.
+            IEnumerable<Game> source = _isEditMode
                 ? _allGames
-                : _allGames.Where(g => g.Name != null && g.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase)).ToList();
+                : _allGames.Where(g => !g.IsHidden);
+
+            var filtered = string.IsNullOrWhiteSpace(searchText)
+                ? source.ToList()
+                : source.Where(g => g.Name != null && g.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase)).ToList();
 
             _games.Clear();
             foreach (var game in filtered)
@@ -374,6 +411,7 @@ namespace OptiscalerClient.Views
 
         private void GameGridCard_PointerEntered(object? sender, PointerEventArgs e)
         {
+            if (_isEditMode) return;
             if (sender is Border card)
             {
                 ToggleGridCardHover(card, true);
@@ -508,6 +546,636 @@ namespace OptiscalerClient.Views
                 _btnViewGrid.Background = _isGridView ? activeBg : inactiveBg;
                 _btnViewGrid.Foreground = _isGridView ? activeFg : inactiveFg;
             }
+        }
+
+        private void BtnEditMode_Click(object? sender, RoutedEventArgs e)
+        {
+            _isEditMode = !_isEditMode;
+            if (_editModeBanner != null) _editModeBanner.IsVisible = _isEditMode;
+
+            if (_btnEditMode != null)
+            {
+                if (_isEditMode) _btnEditMode.Classes.Add("BtnActive");
+                else _btnEditMode.Classes.Remove("BtnActive");
+            }
+
+            if (_isEditMode) _lstGames?.Classes.Add("EditMode");
+            else _lstGames?.Classes.Remove("EditMode");
+
+            if (_isEditMode) _lstGamesGrid?.Classes.Add("EditMode");
+            else _lstGamesGrid?.Classes.Remove("EditMode");
+
+            ApplyFilter(_txtSearch?.Text);
+            Dispatcher.UIThread.Post(() => ApplyEditModeToCards(_isEditMode), DispatcherPriority.Loaded);
+        }
+
+        private void BtnEditModeDone_Click(object? sender, RoutedEventArgs e)
+        {
+            _isEditMode = false;
+            if (_editModeBanner != null) _editModeBanner.IsVisible = false;
+            if (_btnEditMode != null) _btnEditMode.Classes.Remove("BtnActive");
+            _lstGames?.Classes.Remove("EditMode");
+            _lstGamesGrid?.Classes.Remove("EditMode");
+
+            for (int i = 0; i < _allGames.Count; i++) _allGames[i].DisplayOrder = i;
+            _persistenceService.SaveGames(_allGames);
+
+            ApplyFilter(_txtSearch?.Text);
+            Dispatcher.UIThread.Post(() => ApplyEditModeToCards(false), DispatcherPriority.Loaded);
+        }
+
+        private void ApplyEditModeToCards(bool editMode)
+        {
+            var warmBrush   = this.FindResource("BrAccentWarm") as IBrush ?? Brushes.Orange;
+            var secondaryBrush = this.FindResource("BrTextSecondary") as IBrush ?? Brushes.Gray;
+
+            // List view
+            if (_lstGames != null)
+            {
+                for (int i = 0; i < _games.Count; i++)
+                {
+                    var container = _lstGames.ContainerFromIndex(i) as ListBoxItem;
+                    if (container == null) continue;
+                    var game = _games[i];
+
+                    var hideIcon = container.GetVisualDescendants()
+                        .OfType<TextBlock>().FirstOrDefault(x => x.Name == "TxtHideIcon");
+                    if (hideIcon != null)
+                        hideIcon.Foreground = game.IsHidden ? warmBrush : secondaryBrush;
+
+                    container.Opacity = editMode && game.IsHidden ? 0.4 : 1.0;
+                }
+            }
+
+            // Grid view
+            if (_lstGamesGrid != null)
+            {
+                for (int i = 0; i < _games.Count; i++)
+                {
+                    var container = _lstGamesGrid.ContainerFromIndex(i) as ListBoxItem;
+                    if (container == null) continue;
+                    var game = _games[i];
+
+                    var hideIcon = container.GetVisualDescendants()
+                        .OfType<TextBlock>().FirstOrDefault(x => x.Name == "TxtHideIconGrid");
+                    if (hideIcon != null)
+                    {
+                        hideIcon.Text = game.IsHidden ? "\uED1A" : "\uE7B3";
+                        hideIcon.Foreground = game.IsHidden ? warmBrush : secondaryBrush;
+                    }
+
+                    var hideLabel = container.GetVisualDescendants()
+                        .OfType<TextBlock>().FirstOrDefault(x => x.Name == "TxtHideLabel");
+                    if (hideLabel != null)
+                    {
+                        hideLabel.Text = game.IsHidden ? "Show" : "Hide";
+                        hideLabel.Foreground = game.IsHidden ? warmBrush : secondaryBrush;
+                    }
+
+                    var overlayBorder = container.GetVisualDescendants()
+                        .OfType<Border>().FirstOrDefault(x => x.Name == "GridEditOverlayBorder");
+                    if (overlayBorder != null)
+                        overlayBorder.Background = game.IsHidden
+                            ? new SolidColorBrush(Color.Parse("#CC0B0E16"))
+                            : new SolidColorBrush(Color.Parse("#660B0E16"));
+                }
+            }
+        }
+
+        private void BtnMoveUp_Click(object? sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.DataContext is Game game)
+            {
+                int idx = _allGames.IndexOf(game);
+                if (idx <= 0) return;
+                _allGames.RemoveAt(idx);
+                _allGames.Insert(idx - 1, game);
+                ApplyFilter(_txtSearch?.Text);
+                Dispatcher.UIThread.Post(() => ApplyEditModeToCards(true), DispatcherPriority.Loaded);
+            }
+        }
+
+        private void BtnMoveDown_Click(object? sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.DataContext is Game game)
+            {
+                int idx = _allGames.IndexOf(game);
+                if (idx < 0 || idx >= _allGames.Count - 1) return;
+                _allGames.RemoveAt(idx);
+                _allGames.Insert(idx + 1, game);
+                ApplyFilter(_txtSearch?.Text);
+                Dispatcher.UIThread.Post(() => ApplyEditModeToCards(true), DispatcherPriority.Loaded);
+            }
+        }
+
+        private void BtnToggleHide_Click(object? sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.DataContext is Game game)
+            {
+                game.IsHidden = !game.IsHidden;
+                Dispatcher.UIThread.Post(() => ApplyEditModeToCards(true), DispatcherPriority.Loaded);
+            }
+        }
+
+        // ── Pointer-based drag ──────────────────────────────────────────────────
+
+        private void DragHandle_PointerPressed(object? sender, PointerPressedEventArgs e)
+        {
+            if (!_isEditMode) return;
+            if (sender is not Control handle || handle.DataContext is not Game game) return;
+            if (!e.GetCurrentPoint(handle).Properties.IsLeftButtonPressed) return;
+
+            _draggedGame = game;
+            _isDragging   = false;
+            _currentDropIndex = -1;
+            _dragCaptureControl = handle;
+
+            _dragStartPos = e.GetPosition(_dragGhostCanvas);
+
+            // Find the ListBoxItem container so we can read its bounds and compute offset
+            _dragSourceContainer = handle.GetVisualAncestors().OfType<ListBoxItem>().FirstOrDefault();
+            if (_dragSourceContainer != null && _dragGhostCanvas != null)
+            {
+                var srcOrigin = _dragSourceContainer.TranslatePoint(new Point(0, 0), _dragGhostCanvas);
+                if (srcOrigin.HasValue)
+                    _ghostOffset = new Point(_dragStartPos.X - srcOrigin.Value.X,
+                                             _dragStartPos.Y - srcOrigin.Value.Y);
+            }
+
+            e.Pointer.Capture(handle);
+            handle.AddHandler(InputElement.PointerMovedEvent,   OnDragPointerMoved,    handledEventsToo: true);
+            handle.AddHandler(InputElement.PointerReleasedEvent, OnDragPointerReleased, handledEventsToo: true);
+            e.Handled = true;
+        }
+
+        private void OnDragPointerMoved(object? sender, PointerEventArgs e)
+        {
+            if (!_isEditMode || _draggedGame == null || _dragGhostCanvas == null) return;
+
+            var pos = e.GetPosition(_dragGhostCanvas);
+
+            if (!_isDragging)
+            {
+                var d = pos - _dragStartPos;
+                if (Math.Abs(d.X) < 6 && Math.Abs(d.Y) < 6) return;
+                _isDragging = true;
+                StartDragVisuals();
+            }
+
+            // Move ghost to follow the pointer (offset preserves grab point)
+            if (_dragGhost != null)
+            {
+                Canvas.SetLeft(_dragGhost, pos.X - _ghostOffset.X);
+                Canvas.SetTop(_dragGhost,  pos.Y - _ghostOffset.Y);
+            }
+
+            UpdateDropIndicator(pos);
+            e.Handled = true;
+        }
+
+        private async void OnDragPointerReleased(object? sender, PointerReleasedEventArgs e)
+        {
+            // Unsubscribe and release capture
+            if (_dragCaptureControl != null)
+            {
+                _dragCaptureControl.RemoveHandler(InputElement.PointerMovedEvent,   OnDragPointerMoved);
+                _dragCaptureControl.RemoveHandler(InputElement.PointerReleasedEvent, OnDragPointerReleased);
+                e.Pointer.Capture(null);
+            }
+
+            if (!_isDragging || _draggedGame == null)
+            {
+                CleanupDragState();
+                return;
+            }
+
+            int srcIndex = _allGames.IndexOf(_draggedGame);
+            int targetIndex = _currentDropIndex;
+            var dragged = _draggedGame;
+
+            // Fade out ghost
+            if (_dragGhost != null)
+            {
+                _dragGhost.Transitions = new Avalonia.Animation.Transitions
+                {
+                    new Avalonia.Animation.DoubleTransition
+                    {
+                        Property = Visual.OpacityProperty,
+                        Duration = TimeSpan.FromMilliseconds(140),
+                        Easing   = new Avalonia.Animation.Easings.CubicEaseIn()
+                    }
+                };
+                _dragGhost.Opacity = 0;
+                await Task.Delay(140);
+            }
+
+            CleanupDragState();
+
+            // Execute reorder
+            bool noOp = targetIndex < 0 || srcIndex < 0
+                        || targetIndex == srcIndex || targetIndex == srcIndex + 1;
+            if (!noOp)
+            {
+                _allGames.RemoveAt(srcIndex);
+                int insertAt = Math.Clamp(targetIndex > srcIndex ? targetIndex - 1 : targetIndex,
+                                          0, _allGames.Count);
+                _allGames.Insert(insertAt, dragged);
+            }
+
+            ApplyFilter(_txtSearch?.Text);
+            Dispatcher.UIThread.Post(() => ApplyEditModeToCards(true), DispatcherPriority.Loaded);
+        }
+
+        private void StartDragVisuals()
+        {
+            if (_dragGhostCanvas == null || _dragSourceContainer == null || _draggedGame == null) return;
+
+            // Dim source item in place (keeps layout gap)
+            _dragSourceContainer.Opacity = 0.12;
+
+            // Create floating ghost
+            _dragGhost = CreateDragGhost(_draggedGame, _dragSourceContainer);
+            var srcOrigin = _dragSourceContainer.TranslatePoint(new Point(0, 0), _dragGhostCanvas);
+            if (srcOrigin.HasValue)
+            {
+                Canvas.SetLeft(_dragGhost, srcOrigin.Value.X);
+                Canvas.SetTop(_dragGhost,  srcOrigin.Value.Y);
+            }
+            _dragGhost.ZIndex = 20;
+            _dragGhostCanvas.Children.Add(_dragGhost);
+
+            // Insert line for list view only
+            if (!_isGridView && _lstGames != null)
+            {
+                var accentBrush = this.FindResource("BrAccent") as IBrush ?? Brushes.MediumPurple;
+                _dragInsertLine = new Border
+                {
+                    Height          = 3,
+                    Width           = Math.Max(_lstGames.Bounds.Width - 24, 200),
+                    Background      = accentBrush,
+                    CornerRadius    = new CornerRadius(1.5),
+                    IsHitTestVisible= false
+                };
+                Canvas.SetLeft(_dragInsertLine, 12);
+                _dragInsertLine.ZIndex = 10;
+                _dragGhostCanvas.Children.Add(_dragInsertLine);
+            }
+
+            // Snapshot item layout positions BEFORE any transforms are applied
+            SnapshotItemPositions();
+            if (_isGridView) MeasureGridLayout();
+        }
+
+        private Border CreateDragGhost(Game game, ListBoxItem sourceItem)
+        {
+            var accentBrush = this.FindResource("BrAccent") as IBrush ?? Brushes.MediumPurple;
+            var textBrush   = this.FindResource("BrTextPrimary") as IBrush ?? Brushes.White;
+            var secondaryBrush = this.FindResource("BrTextSecondary") as IBrush ?? Brushes.Gray;
+
+            var ghost = new Border
+            {
+                Background      = new SolidColorBrush(Color.FromArgb(0xEC, 0x16, 0x18, 0x2C)),
+                BorderBrush     = accentBrush,
+                BorderThickness = new Thickness(1.5),
+                CornerRadius    = new CornerRadius(12),
+                IsHitTestVisible= false,
+                Opacity         = 0.96,
+                BoxShadow       = new BoxShadows(new BoxShadow
+                {
+                    Blur         = 28,
+                    Color        = Color.FromArgb(120, 0, 0, 0),
+                    OffsetY      = 10
+                }),
+                RenderTransform       = new ScaleTransform(1.04, 1.04),
+                RenderTransformOrigin = new RelativePoint(0.5, 0.5, RelativeUnit.Relative),
+                Width   = sourceItem.Bounds.Width,
+                Height  = sourceItem.Bounds.Height,
+                Child   = new StackPanel
+                {
+                    HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                    VerticalAlignment   = Avalonia.Layout.VerticalAlignment.Center,
+                    Spacing = 10,
+                    Children =
+                    {
+                        new TextBlock
+                        {
+                            Text                = "\uE7FC",  // game controller icon
+                            FontFamily          = new FontFamily("Segoe Fluent Icons, Segoe MDL2 Assets, Segoe UI"),
+                            FontSize            = 22,
+                            Foreground          = accentBrush,
+                            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center
+                        },
+                        new TextBlock
+                        {
+                            Text                = game.Name,
+                            Foreground          = textBrush,
+                            FontWeight          = FontWeight.SemiBold,
+                            FontSize            = 15,
+                            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                            TextWrapping        = TextWrapping.Wrap,
+                            MaxWidth            = Math.Max(sourceItem.Bounds.Width - 40, 80),
+                            TextAlignment       = TextAlignment.Center
+                        },
+                        new TextBlock
+                        {
+                            Text                = game.Platform.ToString(),
+                            Foreground          = secondaryBrush,
+                            FontSize            = 11,
+                            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center
+                        }
+                    }
+                }
+            };
+            return ghost;
+        }
+
+        private void UpdateDropIndicator(Point posInCanvas)
+        {
+            if (_dragGhostCanvas == null) return;
+
+            if (_isGridView && _lstGamesGrid != null)
+            {
+                var origin = _lstGamesGrid.TranslatePoint(new Point(0, 0), _dragGhostCanvas);
+                if (!origin.HasValue) return;
+                var posInGrid = new Point(posInCanvas.X - origin.Value.X, posInCanvas.Y - origin.Value.Y);
+                _currentDropIndex = GetDropIndexFromGridGeometry(posInGrid);
+
+                if (_currentDropIndex != _lastAnimatedDropIndex)
+                {
+                    _lastAnimatedDropIndex = _currentDropIndex;
+                    int srcIdx = _allGames.IndexOf(_draggedGame!);
+                    AnimateGridGap(srcIdx, _currentDropIndex);
+                }
+            }
+            else if (_lstGames != null && _itemLayoutTops.Count > 0)
+            {
+                // Compute drop index from SNAPSHOT positions to avoid transform feedback loop
+                int newDrop = _games.Count;
+                for (int i = 0; i < _games.Count; i++)
+                {
+                    if (i >= _itemLayoutTops.Count || double.IsNaN(_itemLayoutTops[i])) continue;
+                    if (posInCanvas.Y < _itemLayoutTops[i] + _itemLayoutHeight / 2) { newDrop = i; break; }
+                }
+                _currentDropIndex = newDrop;
+
+                // Only re-animate when the target slot actually changes
+                if (_currentDropIndex != _lastAnimatedDropIndex)
+                {
+                    _lastAnimatedDropIndex = _currentDropIndex;
+                    int srcIdx = _allGames.IndexOf(_draggedGame!);
+                    AnimateListGap(srcIdx, _currentDropIndex);
+                    PositionInsertLine(_currentDropIndex);
+                }
+            }
+        }
+
+        private void PositionInsertLine(int insertIndex)
+        {
+            if (_dragInsertLine == null || _itemLayoutTops.Count == 0) return;
+            int count = _games.Count;
+            if (count == 0) return;
+
+            int clamped = Math.Clamp(insertIndex, 0, count);
+            double lineY;
+
+            if (clamped == 0 && !double.IsNaN(_itemLayoutTops[0]))
+                lineY = _itemLayoutTops[0];
+            else if (clamped >= count && !double.IsNaN(_itemLayoutTops[count - 1]))
+                lineY = _itemLayoutTops[count - 1] + _itemLayoutHeight;
+            else if (clamped > 0 && clamped < count
+                     && !double.IsNaN(_itemLayoutTops[clamped - 1])
+                     && !double.IsNaN(_itemLayoutTops[clamped]))
+                lineY = (_itemLayoutTops[clamped - 1] + _itemLayoutHeight + _itemLayoutTops[clamped]) / 2.0;
+            else
+                return;
+
+            Canvas.SetTop(_dragInsertLine, lineY - 1.5);
+        }
+
+        private void SnapshotItemPositions()
+        {
+            _itemLayoutTops.Clear();
+            _itemLayoutHeight = _dragSourceContainer?.Bounds.Height ?? 160;
+            if (_lstGames == null || _dragGhostCanvas == null || _isGridView) return;
+
+            for (int i = 0; i < _games.Count; i++)
+            {
+                var c = _lstGames.ContainerFromIndex(i) as ListBoxItem;
+                var p = c?.TranslatePoint(new Point(0, 0), _dragGhostCanvas);
+                _itemLayoutTops.Add(p.HasValue ? p.Value.Y : double.NaN);
+            }
+        }
+
+        private void MeasureGridLayout()
+        {
+            _gridColCount = 0;
+            _gridHGap = 0;
+            _gridVGap = 0;
+            if (_lstGamesGrid == null || _games.Count < 1) return;
+
+            var c0 = _lstGamesGrid.ContainerFromIndex(0) as ListBoxItem;
+            if (c0 == null) return;
+
+            _gridItemWidth  = c0.Bounds.Width;
+            _gridItemHeight = c0.Bounds.Height;
+
+            var p0 = c0.TranslatePoint(new Point(0, 0), _lstGamesGrid);
+            if (!p0.HasValue) return;
+            _gridOriginX = p0.Value.X;
+            _gridOriginY = p0.Value.Y;
+
+            // Count items on the first row
+            for (int i = 0; i < _games.Count; i++)
+            {
+                var ci = _lstGamesGrid.ContainerFromIndex(i) as ListBoxItem;
+                if (ci == null) continue;
+                var pi = ci.TranslatePoint(new Point(0, 0), _lstGamesGrid);
+                if (!pi.HasValue) continue;
+                if (Math.Abs(pi.Value.Y - p0.Value.Y) > 10) break;
+                _gridColCount++;
+            }
+            if (_gridColCount == 0) _gridColCount = 1;
+
+            // Horizontal gap from item 0 → 1
+            if (_gridColCount > 1)
+            {
+                var c1 = _lstGamesGrid.ContainerFromIndex(1) as ListBoxItem;
+                var p1 = c1?.TranslatePoint(new Point(0, 0), _lstGamesGrid);
+                if (p1.HasValue)
+                    _gridHGap = p1.Value.X - (p0.Value.X + _gridItemWidth);
+            }
+
+            // Vertical gap from row 0 → 1
+            if (_games.Count > _gridColCount)
+            {
+                var cNext = _lstGamesGrid.ContainerFromIndex(_gridColCount) as ListBoxItem;
+                var pNext = cNext?.TranslatePoint(new Point(0, 0), _lstGamesGrid);
+                if (pNext.HasValue)
+                    _gridVGap = pNext.Value.Y - (p0.Value.Y + _gridItemHeight);
+            }
+        }
+
+        private void AnimateGridGap(int srcIndex, int dropIndex)
+        {
+            if (_lstGamesGrid == null || _gridColCount == 0) return;
+            int n = _games.Count;
+            double cellW = _gridItemWidth  + _gridHGap;
+            double cellH = _gridItemHeight + _gridVGap;
+            var ic = System.Globalization.CultureInfo.InvariantCulture;
+
+            for (int i = 0; i < n; i++)
+            {
+                var container = _lstGamesGrid.ContainerFromIndex(i) as ListBoxItem;
+                if (container == null || i == srcIndex) continue;
+
+                // Virtual index: where this item ends up if src is removed and re-inserted at dropIndex
+                int vIdx;
+                if (dropIndex <= srcIndex)
+                {
+                    if      (i < dropIndex)  vIdx = i;     // before gap: stay
+                    else if (i < srcIndex)   vIdx = i + 1; // between drop and src: shift right
+                    else                     vIdx = i;     // after src: stay
+                }
+                else
+                {
+                    if      (i > srcIndex && i < dropIndex) vIdx = i - 1; // between src and drop: shift left
+                    else                                    vIdx = i;     // outside range: stay
+                }
+
+                // Natural grid position (based on original index)
+                double natX = (i % _gridColCount) * cellW;
+                double natY = (i / _gridColCount) * cellH;
+
+                // Target grid position (based on virtual index)
+                double tgtX = (vIdx % _gridColCount) * cellW;
+                double tgtY = (vIdx / _gridColCount) * cellH;
+
+                double dx = tgtX - natX;
+                double dy = tgtY - natY;
+
+                EnsureTransformTransition(container);
+                if (Math.Abs(dx) < 0.5 && Math.Abs(dy) < 0.5)
+                    container.RenderTransform = TransformOperations.Parse("translateX(0px) translateY(0px)");
+                else
+                    container.RenderTransform = TransformOperations.Parse(
+                        $"translateX({dx.ToString("F1", ic)}px) translateY({dy.ToString("F1", ic)}px)");
+            }
+        }
+
+        private void ResetGridItemTransforms()
+        {
+            if (_lstGamesGrid == null || _gridColCount == 0) return;
+            var ic = System.Globalization.CultureInfo.InvariantCulture;
+            for (int i = 0; i < _games.Count; i++)
+            {
+                var container = _lstGamesGrid.ContainerFromIndex(i) as ListBoxItem;
+                if (container?.RenderTransform == null) continue;
+                EnsureTransformTransition(container);
+                container.RenderTransform = TransformOperations.Parse("translateX(0px) translateY(0px)");
+            }
+            _gridColCount = 0;
+        }
+
+        private void AnimateListGap(int srcIndex, int dropIndex)
+        {
+            if (_lstGames == null) return;
+            double gap = _itemLayoutHeight + 8;
+
+            for (int i = 0; i < _games.Count; i++)
+            {
+                var container = _lstGames.ContainerFromIndex(i) as ListBoxItem;
+                if (container == null || i == srcIndex) continue;
+
+                double shift;
+                if (dropIndex <= srcIndex)
+                    shift = (i >= dropIndex && i < srcIndex) ? gap : 0;
+                else
+                    shift = (i > srcIndex && i < dropIndex) ? -gap : 0;
+
+                EnsureTransformTransition(container);
+                container.RenderTransform = TransformOperations.Parse($"translateY({shift}px)");
+            }
+        }
+
+        private static void EnsureTransformTransition(Control ctrl)
+        {
+            if (ctrl.Transitions != null &&
+                ctrl.Transitions.Any(t => t is Avalonia.Animation.TransformOperationsTransition tot
+                                       && Equals(tot.Property, Visual.RenderTransformProperty)))
+                return;
+            ctrl.Transitions ??= new Avalonia.Animation.Transitions();
+            ctrl.Transitions.Add(new Avalonia.Animation.TransformOperationsTransition
+            {
+                Property = Visual.RenderTransformProperty,
+                Duration = TimeSpan.FromMilliseconds(130),
+                Easing   = new Avalonia.Animation.Easings.CubicEaseOut()
+            });
+        }
+
+        private void ResetItemTransforms()
+        {
+            if (_lstGames == null || _itemLayoutTops.Count == 0) return;
+            for (int i = 0; i < _games.Count; i++)
+            {
+                var container = _lstGames.ContainerFromIndex(i) as ListBoxItem;
+                if (container?.RenderTransform == null) continue;
+                container.RenderTransform = TransformOperations.Parse("translateY(0px)");
+            }
+            _lastAnimatedDropIndex = -2;
+            _itemLayoutTops.Clear();
+        }
+
+        private void CleanupDragState()
+        {
+            ResetItemTransforms();
+            ResetGridItemTransforms();
+            if (_dragGhostCanvas != null)
+            {
+                if (_dragGhost      != null) { _dragGhostCanvas.Children.Remove(_dragGhost);      _dragGhost      = null; }
+                if (_dragInsertLine != null) { _dragGhostCanvas.Children.Remove(_dragInsertLine); _dragInsertLine = null; }
+            }
+            if (_dragSourceContainer != null) { _dragSourceContainer.Opacity = 1.0; _dragSourceContainer = null; }
+            _isDragging         = false;
+            _draggedGame        = null;
+            _dragCaptureControl = null;
+            _currentDropIndex   = -1;
+        }
+
+        private int GetDropIndex(ListBox lb, Point posInLb)
+        {
+            for (int i = 0; i < _games.Count; i++)
+            {
+                var container = lb.ContainerFromIndex(i) as ListBoxItem;
+                if (container == null) continue;
+                var topLeft = container.TranslatePoint(new Point(0, 0), lb);
+                if (!topLeft.HasValue) continue;
+                if (posInLb.Y < topLeft.Value.Y + container.Bounds.Height / 2)
+                    return i;
+            }
+            return _games.Count;
+        }
+
+        // Compute drop index from measured grid geometry (immune to RenderTransform feedback loop).
+        private int GetDropIndexFromGridGeometry(Point posInGrid)
+        {
+            if (_gridColCount == 0) return _games.Count;
+            double cellW = _gridItemWidth  + _gridHGap;
+            double cellH = _gridItemHeight + _gridVGap;
+
+            double relX = posInGrid.X - _gridOriginX;
+            double relY = posInGrid.Y - _gridOriginY;
+
+            int col = Math.Clamp((int)(relX / cellW), 0, _gridColCount - 1);
+            int row = Math.Max(0, (int)(relY / cellH));
+
+            // Within the cell, left or right of the item's horizontal centre?
+            double localX = relX - col * cellW;
+            bool rightHalf = localX > _gridItemWidth / 2.0;
+
+            int idx = row * _gridColCount + col;
+            if (rightHalf) idx++;
+
+            return Math.Clamp(idx, 0, _games.Count);
         }
 
         private async void BtnGuide_Click2(object? sender, RoutedEventArgs e)
@@ -3069,7 +3737,10 @@ namespace OptiscalerClient.Views
         private bool LoadSavedGames(CancellationToken cancellationToken)
         {
             var savedGames = _persistenceService.LoadGames();
-            _allGames = savedGames;
+            // Honour persisted display order on startup
+            _allGames = savedGames.OrderBy(g => g.DisplayOrder).ToList();
+            // Normalise DisplayOrder so it's 0-based and gapless
+            for (int i = 0; i < _allGames.Count; i++) _allGames[i].DisplayOrder = i;
 
             ApplyFilter(_txtSearch?.Text);
 
