@@ -15,6 +15,7 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 using OptiscalerClient.Models;
+using OptiscalerClient.Views;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -40,6 +41,26 @@ public class GameAnalyzerService
         "ffx_fsr3_api_dx12_x64.dll"
     };
     private static readonly string[] _xessNames = new[] { "libxess.dll" };
+
+    private static readonly HashSet<string> _allTargetFileNames;
+    private static readonly string _diskCachePath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        "OptiscalerClient", "analysis_cache.json");
+    private static volatile bool _diskCacheLoaded = false;
+
+    static GameAnalyzerService()
+    {
+        _allTargetFileNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "optiscaler_manifest.json",
+            "optiscaler.log",
+            "OptiScaler.ini"
+        };
+        foreach (var n in _dlssNames) _allTargetFileNames.Add(n);
+        foreach (var n in _dlssFrameGenNames) _allTargetFileNames.Add(n);
+        foreach (var n in _fsrNames) _allTargetFileNames.Add(n);
+        foreach (var n in _xessNames) _allTargetFileNames.Add(n);
+    }
 
     public static void InvalidateCacheForPath(string? installPath)
     {
@@ -99,19 +120,16 @@ public class GameAnalyzerService
 
         try
         {
-            var options = new EnumerationOptions
-            {
-                RecurseSubdirectories = true,
-                IgnoreInaccessible = true,
-                MatchCasing = MatchCasing.CaseInsensitive
-            };
+            // ── Single-pass file collection ──────────────────────────────────────────
+            // Traverse the game directory once and classify all relevant files by name.
+            var collectedFiles = CollectRelevantFiles(game.InstallPath);
 
             // ── Detect OptiScaler ──────────────────────────────────────────────────
             // Do this first so we can ignore its installed files when looking for native DLLs
             try
             {
                 // ── Priority 1: manifest ────────────────────────────────────────────
-                var manifestFiles = Directory.GetFiles(game.InstallPath, "optiscaler_manifest.json", options);
+                var manifestFiles = collectedFiles.TryGetValue("optiscaler_manifest.json", out var mf) ? mf.ToArray() : Array.Empty<string>();
                 if (manifestFiles.Length > 0)
                 {
                     try
@@ -191,7 +209,7 @@ public class GameAnalyzerService
                 {
                     try
                     {
-                        var logs = Directory.GetFiles(game.InstallPath, "optiscaler.log", options);
+                        var logs = collectedFiles.TryGetValue("optiscaler.log", out var lf) ? lf.ToArray() : Array.Empty<string>();
                         if (logs.Length > 0)
                         {
                             // Example log line: "[2024-...] [Init] OptiScaler v0.7.0-rc1"
@@ -222,31 +240,28 @@ public class GameAnalyzerService
                 // ── Priority 3: OptiScaler.ini presence (no version — last resort) ──
                 if (!blockHeuristicFallbackDetection && !game.IsOptiscalerInstalled)
                 {
-                    var iniFiles = Directory.GetFiles(game.InstallPath, "OptiScaler.ini", options);
+                    var iniFiles = collectedFiles.TryGetValue("OptiScaler.ini", out var inf) ? inf.ToArray() : Array.Empty<string>();
                     if (iniFiles.Length > 0)
                         game.IsOptiscalerInstalled = true;
                 }
             }
             catch { /* Ignore OptiScaler detection errors */ }
 
-            // Efficiently search ONLY for the specific files we care about
-            // This avoids listing thousands of DLLs
-
             // DLSS
-            FindBestVersion(game, game.InstallPath, _dlssNames, options, ignoredFiles, (g, path, ver) =>
+            FindBestVersionFromCollected(game, collectedFiles, _dlssNames, ignoredFiles, (g, path, ver) =>
             {
                 g.DlssPath = path;
                 g.DlssVersion = ver;
             });
 
             // DLSS Frame Gen
-            FindBestVersion(game, game.InstallPath, _dlssFrameGenNames, options, ignoredFiles, (g, path, ver) => { g.DlssFrameGenPath = path; g.DlssFrameGenVersion = ver; });
+            FindBestVersionFromCollected(game, collectedFiles, _dlssFrameGenNames, ignoredFiles, (g, path, ver) => { g.DlssFrameGenPath = path; g.DlssFrameGenVersion = ver; });
 
             // FSR
-            FindBestVersion(game, game.InstallPath, _fsrNames, options, ignoredFiles, (g, path, ver) => { g.FsrPath = path; g.FsrVersion = ver; });
+            FindBestVersionFromCollected(game, collectedFiles, _fsrNames, ignoredFiles, (g, path, ver) => { g.FsrPath = path; g.FsrVersion = ver; });
 
             // XeSS
-            FindBestVersion(game, game.InstallPath, _xessNames, options, ignoredFiles, (g, path, ver) => { g.XessPath = path; g.XessVersion = ver; });
+            FindBestVersionFromCollected(game, collectedFiles, _xessNames, ignoredFiles, (g, path, ver) => { g.XessPath = path; g.XessVersion = ver; });
 
         }
         catch { /* General error */ }
@@ -278,7 +293,7 @@ public class GameAnalyzerService
         }
     }
 
-    private void FindBestVersion(Game game, string path, string[] filePatterns, EnumerationOptions options, HashSet<string> ignoredFiles, Action<Game, string, string> updateAction)
+    private static void FindBestVersionFromCollected(Game game, Dictionary<string, List<string>> collectedFiles, string[] filePatterns, HashSet<string> ignoredFiles, Action<Game, string, string> updateAction)
     {
         var highestVer = new Version(0, 0);
         string? bestPath = null;
@@ -286,46 +301,109 @@ public class GameAnalyzerService
 
         foreach (var pattern in filePatterns)
         {
-            try
+            if (!collectedFiles.TryGetValue(pattern, out var files)) continue;
+            foreach (var file in files)
             {
-                var files = Directory.GetFiles(path, pattern, options);
-                foreach (var file in files)
+                if (ignoredFiles.Contains(Path.GetFullPath(file))) continue;
+
+                var versionStr = GetFileVersion(file);
+
+                // Clean up version string if it contains "FSR ", e.g. "FSR 3.1.4"
+                string parseableVerStr = versionStr;
+                if (parseableVerStr.StartsWith("FSR ", StringComparison.OrdinalIgnoreCase))
+                    parseableVerStr = parseableVerStr.Substring(4).Trim();
+
+                // Also take only the first component if there are spaces, e.g. "3.1.0 (release)"
+                parseableVerStr = parseableVerStr.Split(' ')[0];
+
+                if (Version.TryParse(parseableVerStr, out var currentVer) && currentVer > highestVer)
                 {
-                    if (ignoredFiles.Contains(Path.GetFullPath(file))) continue;
-
-                    var versionStr = GetFileVersion(file);
-
-                    // Clean up version string if it contains "FSR ", e.g. "FSR 3.1.4"
-                    string parseableVerStr = versionStr;
-                    if (parseableVerStr.StartsWith("FSR ", StringComparison.OrdinalIgnoreCase))
-                    {
-                        parseableVerStr = parseableVerStr.Substring(4).Trim();
-                    }
-
-                    // Also take only the first component if there are spaces, e.g. "3.1.0 (release)"
-                    parseableVerStr = parseableVerStr.Split(' ')[0];
-
-                    if (Version.TryParse(parseableVerStr, out var currentVer))
-                    {
-                        if (currentVer > highestVer)
-                        {
-                            highestVer = currentVer;
-                            bestPath = file;
-                            bestVerStr = versionStr; // keep original string for display
-                        }
-                    }
+                    highestVer = currentVer;
+                    bestPath = file;
+                    bestVerStr = versionStr; // keep original string for display
                 }
             }
-            catch { /* Ignore individual search errors */ }
         }
 
         if (bestPath != null && bestVerStr != null)
-        {
             updateAction(game, bestPath, bestVerStr);
-        }
     }
 
-    private string GetFileVersion(string filePath)
+    private static Dictionary<string, List<string>> CollectRelevantFiles(string path)
+    {
+        var result = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+        var options = new EnumerationOptions
+        {
+            RecurseSubdirectories = true,
+            IgnoreInaccessible = true,
+            MatchCasing = MatchCasing.CaseInsensitive
+        };
+
+        try
+        {
+            foreach (var file in Directory.EnumerateFiles(path, "*", options))
+            {
+                var name = Path.GetFileName(file);
+                if (_allTargetFileNames.Contains(name))
+                {
+                    if (!result.TryGetValue(name, out var list))
+                    {
+                        list = new List<string>();
+                        result[name] = list;
+                    }
+                    list.Add(file);
+                }
+            }
+        }
+        catch { /* Ignore inaccessible directories */ }
+
+        return result;
+    }
+
+    public static void LoadCacheFromDisk()
+    {
+        lock (_cacheLock)
+        {
+            if (_diskCacheLoaded) return;
+            _diskCacheLoaded = true;
+        }
+
+        try
+        {
+            if (!File.Exists(_diskCachePath)) return;
+            var json = File.ReadAllText(_diskCachePath);
+            var loaded = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, AnalysisCacheEntry>>(json);
+            if (loaded == null) return;
+
+            lock (_cacheLock)
+            {
+                foreach (var kv in loaded)
+                    _analysisCache[kv.Key] = kv.Value;
+            }
+            DebugWindow.Log($"[Analyzer] Loaded {loaded.Count} cached entries from disk.");
+        }
+        catch { /* Ignore corrupt or missing cache */ }
+    }
+
+    public static void FlushCacheToDisk()
+    {
+        try
+        {
+            Dictionary<string, AnalysisCacheEntry> snapshot;
+            lock (_cacheLock)
+            {
+                snapshot = new Dictionary<string, AnalysisCacheEntry>(_analysisCache, StringComparer.OrdinalIgnoreCase);
+            }
+            var dir = Path.GetDirectoryName(_diskCachePath)!;
+            if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+            var json = System.Text.Json.JsonSerializer.Serialize(snapshot);
+            File.WriteAllText(_diskCachePath, json);
+            DebugWindow.Log($"[Analyzer] Flushed {snapshot.Count} cache entries to disk.");
+        }
+        catch { /* Ignore write errors */ }
+    }
+
+    private static string GetFileVersion(string filePath)
     {
         try
         {

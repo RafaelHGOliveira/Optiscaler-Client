@@ -59,8 +59,6 @@ namespace OptiscalerClient.Views
         private ScrollViewer? _gameGridScrollViewer;
         private bool _isInitializingLanguage = true;
         private bool _isGridView = true;
-        private DispatcherTimer? _scanDotTimer;
-        private double _scanDotPhase = 0;
         private readonly Dictionary<Button, DispatcherTimer> _quickInstallDotTimers = new();
         private readonly Dictionary<Button, double> _quickInstallDotPhases = new();
         private readonly Dictionary<Button, double> _quickInstallOriginalMinWidths = new();
@@ -3751,7 +3749,8 @@ namespace OptiscalerClient.Views
             {
                 _ = Task.Run(async () =>
                 {
-                    using var coverSemaphore = new SemaphoreSlim(2, 2);
+                    GameAnalyzerService.LoadCacheFromDisk();
+                    using var coverSemaphore = new SemaphoreSlim(6, 6);
                     var coverTasks = new List<Task>();
                     var analyzedCount = 0;
 
@@ -3835,7 +3834,6 @@ namespace OptiscalerClient.Views
             if (_btnScan != null) _btnScan.IsEnabled = false;
             if (_txtStatus != null) _txtStatus.Text = GetResourceString("TxtScanningShort", "Scanning for games...");
             if (_overlayScanning != null) _overlayScanning.IsVisible = true;
-            StartScanDotAnimation();
 
             try
             {
@@ -3864,23 +3862,31 @@ namespace OptiscalerClient.Views
                 foreach (var scannedGame in scanResults)
                 {
                     if (!_games.Any(g => g.InstallPath.Equals(scannedGame.InstallPath, StringComparison.OrdinalIgnoreCase)))
-                    {
-                        if (string.IsNullOrEmpty(scannedGame.CoverImageUrl))
-                        {
-                            var appIdKey = !string.IsNullOrEmpty(scannedGame.AppId) ? scannedGame.AppId : scannedGame.Name;
-                            scannedGame.CoverImageUrl = await _metadataService.FetchAndCacheCoverImageAsync(scannedGame.Name, appIdKey);
-                        }
                         _games.Add(scannedGame);
-                    }
                 }
 
                 _allGames = _games.ToList();
+
+                // Fetch covers in parallel (up to 6 concurrent downloads)
+                using var coverSemaphore = new SemaphoreSlim(6, 6);
+                var coverTasks = _games
+                    .Where(g => string.IsNullOrEmpty(g.CoverImageUrl) || g.CoverImageUrl.StartsWith("http"))
+                    .Select(game =>
+                    {
+                        var appIdKey = !string.IsNullOrEmpty(game.AppId) ? game.AppId : game.Name;
+                        return Task.Run(async () =>
+                        {
+                            await coverSemaphore.WaitAsync();
+                            try { game.CoverImageUrl = await _metadataService.FetchAndCacheCoverImageAsync(game.Name, appIdKey); }
+                            finally { coverSemaphore.Release(); }
+                        });
+                    })
+                    .ToList();
+
+                await Task.WhenAll(coverTasks);
                 _persistenceService.SaveGames(_games);
 
-                if (_txtSearch != null && !string.IsNullOrEmpty(_txtSearch.Text))
-                {
-                    ApplyFilter(_txtSearch.Text);
-                }
+                ApplyFilter(_txtSearch?.Text);
 
                 var scanCompleteFormat = GetResourceString("TxtScanCompleteFormat", "Scan complete. Total games: {0}");
                 if (_txtStatus != null) _txtStatus.Text = string.Format(scanCompleteFormat, _games.Count);
@@ -3893,7 +3899,6 @@ namespace OptiscalerClient.Views
             }
             finally
             {
-                StopScanDotAnimation();
                 if (_btnScan != null) _btnScan.IsEnabled = true;
                 if (_overlayScanning != null) _overlayScanning.IsVisible = false;
             }
@@ -4432,42 +4437,6 @@ namespace OptiscalerClient.Views
                     }
                 });
             }
-        }
-
-        private void StartScanDotAnimation()
-        {
-            var dot1 = this.FindControl<Ellipse>("ScanDot1");
-            var dot2 = this.FindControl<Ellipse>("ScanDot2");
-            var dot3 = this.FindControl<Ellipse>("ScanDot3");
-            if (dot1 == null || dot2 == null || dot3 == null) return;
-
-            var t1 = new Avalonia.Media.TranslateTransform();
-            var t2 = new Avalonia.Media.TranslateTransform();
-            var t3 = new Avalonia.Media.TranslateTransform();
-            dot1.RenderTransform = t1;
-            dot2.RenderTransform = t2;
-            dot3.RenderTransform = t3;
-
-            const double amplitude = 10;
-            const double step = 0.25;
-            const double phaseOffset = Math.PI * 2 / 3;
-
-            _scanDotPhase = 0;
-            _scanDotTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(33) };
-            _scanDotTimer.Tick += (s, e) =>
-            {
-                _scanDotPhase += step;
-                t1.Y = -amplitude * Math.Max(0, Math.Sin(_scanDotPhase));
-                t2.Y = -amplitude * Math.Max(0, Math.Sin(_scanDotPhase + phaseOffset));
-                t3.Y = -amplitude * Math.Max(0, Math.Sin(_scanDotPhase + phaseOffset * 2));
-            };
-            _scanDotTimer.Start();
-        }
-
-        private void StopScanDotAnimation()
-        {
-            _scanDotTimer?.Stop();
-            _scanDotTimer = null;
         }
 
         private void ShowToast(string message, bool showProgress = false, double? progressPercent = null)

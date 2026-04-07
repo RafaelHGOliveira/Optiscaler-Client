@@ -74,6 +74,53 @@
         <Style Selector="ListBox#LstGamesGrid.EditMode ListBoxItem Border.GridEditOverlay">
             <Setter Property="IsVisible" Value="True"/>
         </Style>
+
+        <!-- Scan modal dot bounce animations (animate Margin via built-in ThicknessAnimator) -->
+        <Style Selector="Ellipse#ScanDot1">
+            <Style.Animations>
+                <Animation Duration="0:0:0.6" IterationCount="INFINITE" Easing="SineEaseInOut">
+                    <KeyFrame Cue="0%">
+                        <Setter Property="Margin" Value="4,12,4,0"/>
+                    </KeyFrame>
+                    <KeyFrame Cue="50%">
+                        <Setter Property="Margin" Value="4,2,4,10"/>
+                    </KeyFrame>
+                    <KeyFrame Cue="100%">
+                        <Setter Property="Margin" Value="4,12,4,0"/>
+                    </KeyFrame>
+                </Animation>
+            </Style.Animations>
+        </Style>
+        <Style Selector="Ellipse#ScanDot2">
+            <Style.Animations>
+                <Animation Duration="0:0:0.6" Delay="0:0:0.2" IterationCount="INFINITE" Easing="SineEaseInOut">
+                    <KeyFrame Cue="0%">
+                        <Setter Property="Margin" Value="4,12,4,0"/>
+                    </KeyFrame>
+                    <KeyFrame Cue="50%">
+                        <Setter Property="Margin" Value="4,2,4,10"/>
+                    </KeyFrame>
+                    <KeyFrame Cue="100%">
+                        <Setter Property="Margin" Value="4,12,4,0"/>
+                    </KeyFrame>
+                </Animation>
+            </Style.Animations>
+        </Style>
+        <Style Selector="Ellipse#ScanDot3">
+            <Style.Animations>
+                <Animation Duration="0:0:0.6" Delay="0:0:0.4" IterationCount="INFINITE" Easing="SineEaseInOut">
+                    <KeyFrame Cue="0%">
+                        <Setter Property="Margin" Value="4,12,4,0"/>
+                    </KeyFrame>
+                    <KeyFrame Cue="50%">
+                        <Setter Property="Margin" Value="4,2,4,10"/>
+                    </KeyFrame>
+                    <KeyFrame Cue="100%">
+                        <Setter Property="Margin" Value="4,12,4,0"/>
+                    </KeyFrame>
+                </Animation>
+            </Style.Animations>
+        </Style>
     </Window.Styles>
 
     <Grid>
