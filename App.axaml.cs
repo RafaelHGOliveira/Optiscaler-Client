@@ -32,10 +32,13 @@ namespace OptiscalerClient
 
             // Ensure trace and console output go to Terminal
             System.Diagnostics.Trace.Listeners.Add(new System.Diagnostics.TextWriterTraceListener(Console.Out));
-            
+
             AppDomain.CurrentDomain.UnhandledException += (s, args) =>
             {
-                System.IO.File.WriteAllText("crash.log", args.ExceptionObject.ToString());
+                var crashLogPath = System.IO.Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                    "OptiscalerClient", "crash.log");
+                System.IO.File.WriteAllText(crashLogPath, args.ExceptionObject.ToString());
             };
         }
 
