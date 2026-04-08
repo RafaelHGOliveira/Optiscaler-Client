@@ -376,10 +376,19 @@ namespace OptiscalerClient.Views
 
             cmb.Items.Clear();
 
+            var versions = componentService.ExtrasAvailableVersions;
+            if (versions.Count == 0)
+            {
+                cmb.Items.Add(new ComboBoxItem { Content = GetResourceString("TxtNoVersions", "No versions available"), Tag = "none" });
+                cmb.SelectedIndex = 0;
+                cmb.IsEnabled = false;
+                return;
+            }
+            cmb.IsEnabled = true;
+
             // Option 0: None
             cmb.Items.Add(new ComboBoxItem { Content = "None", Tag = "none" });
 
-            var versions = componentService.ExtrasAvailableVersions;
             foreach (var ver in versions)
             {
                 var isLatest = ver == componentService.LatestExtrasVersion;

@@ -158,7 +158,13 @@ namespace OptiscalerClient.Views
 
             if (folders != null && folders.Count > 0)
             {
-                var selectedPath = folders[0].Path.LocalPath;
+                var folder = folders[0];
+                var selectedPath = folder.Path.IsAbsoluteUri
+                    ? folder.Path.LocalPath
+                    : folder.TryGetLocalPath();
+
+                if (string.IsNullOrEmpty(selectedPath) || !Directory.Exists(selectedPath))
+                    return;
 
                 if (!_customFolders.Contains(selectedPath))
                 {

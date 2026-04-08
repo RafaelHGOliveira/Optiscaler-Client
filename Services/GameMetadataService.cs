@@ -45,6 +45,20 @@ public class GameMetadataService
     }
 
     /// <summary>
+    /// Deletes the ".nocover" sentinel file for a game so it will be re-fetched on the next attempt.
+    /// </summary>
+    public void DeleteSentinel(string appIdKey)
+    {
+        try
+        {
+            var sentinelPath = Path.Combine(_coversCachePath, $"{SanitizeFileName(appIdKey)}.nocover");
+            if (File.Exists(sentinelPath))
+                File.Delete(sentinelPath);
+        }
+        catch { /* ignore */ }
+    }
+
+    /// <summary>
     /// Searches for game cover art using multiple sources with fallback.
     /// Priority: 1) Cache, 2) Steam API (with AppId if available), 3) SteamGridDB
     /// </summary>

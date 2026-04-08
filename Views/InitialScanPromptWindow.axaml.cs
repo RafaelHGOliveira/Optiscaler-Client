@@ -18,11 +18,13 @@ namespace OptiscalerClient.Views
     {
         public ScanSourcesConfig ScanSources { get; }
         public List<string> DriveRoots { get; }
+        public bool RefreshCoversOnly { get; }
 
-        public InitialScanOptions(ScanSourcesConfig scanSources, List<string> driveRoots)
+        public InitialScanOptions(ScanSourcesConfig scanSources, List<string> driveRoots, bool refreshCoversOnly = false)
         {
             ScanSources = scanSources;
             DriveRoots = driveRoots;
+            RefreshCoversOnly = refreshCoversOnly;
         }
     }
 
@@ -180,6 +182,14 @@ namespace OptiscalerClient.Views
             }
         }
 
+        private void TglRefreshCoversOnly_IsCheckedChanged(object? sender, RoutedEventArgs e)
+        {
+            var isCoversOnly = (sender as ToggleSwitch)?.IsChecked ?? false;
+            var pnl = this.FindControl<StackPanel>("PnlScanOptions");
+            if (pnl != null)
+                pnl.IsEnabled = !isCoversOnly;
+        }
+
         private void BtnStartScan_Click(object? sender, RoutedEventArgs e)
         {
             var tglSteam = this.FindControl<ToggleSwitch>("TglSteam");
@@ -205,7 +215,9 @@ namespace OptiscalerClient.Views
                 .Select(d => d.Root)
                 .ToList();
 
-            Close(new InitialScanOptions(sources, selectedDrives));
+            var refreshCoversOnly = this.FindControl<ToggleSwitch>("TglRefreshCoversOnly")?.IsChecked ?? false;
+
+            Close(new InitialScanOptions(sources, selectedDrives, refreshCoversOnly));
         }
 
         private void BtnClose_Click(object? sender, RoutedEventArgs e)
