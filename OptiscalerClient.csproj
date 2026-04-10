@@ -22,6 +22,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Tmds.DBus.Protocol is a Linux-only transitive dep from Avalonia, never executed on Windows -->
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-xrw6-gwf8-vvr9" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Update="config.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
