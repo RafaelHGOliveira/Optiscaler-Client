@@ -51,6 +51,7 @@ namespace OptiscalerClient.Views
         private bool _isUpdatingProfiles;
         private string? _lastSelectedProfileName;
         private string? _defaultProfileName;
+        private GameQuirksProfile? _quirks;
 
         public bool NeedsScan { get; private set; }
 
@@ -382,6 +383,9 @@ namespace OptiscalerClient.Views
 
             // ── Populate OptiPatcher selector ─────────────────────────────────
             PopulateOptiPatcherComboBox(componentService);
+
+            // Apply quirks pre-selections after all combos are populated
+            ApplyQuirksPreselection(_quirks);
         }
 
         /// <summary>
@@ -617,6 +621,101 @@ namespace OptiscalerClient.Views
             UpdateStatus();
             LoadComponents();
             ConfigureAdditionalComponents();
+
+            // Resolve quirks for this game
+            var quirksService = new GameQuirksService();
+            _quirks = quirksService.TryGetQuirks(_game);
+            ApplyQuirksBanner(_quirks);
+        }
+
+        private void ApplyQuirksBanner(GameQuirksProfile? quirks)
+        {
+            var banner = this.FindControl<Border>("QuirksBanner");
+            if (banner == null) return;
+
+            if (quirks == null)
+            {
+                banner.IsVisible = false;
+                return;
+            }
+
+            banner.IsVisible = true;
+
+            // Notes
+            var txtNotes = this.FindControl<TextBlock>("TxtQuirksBannerNotes");
+            if (txtNotes != null && !string.IsNullOrWhiteSpace(quirks.Notes))
+            {
+                txtNotes.Text = quirks.Notes;
+                txtNotes.IsVisible = true;
+            }
+
+            // Required prereqs chips
+            var prereqPanel = this.FindControl<StackPanel>("QuirksPrereqPanel");
+            var prereqList = this.FindControl<ItemsControl>("QuirksPrereqList");
+            if (prereqPanel != null && prereqList != null && quirks.RequiredPrereqs.Count > 0)
+            {
+                prereqList.ItemsSource = quirks.RequiredPrereqs;
+                prereqPanel.IsVisible = true;
+            }
+
+            // Wiki link
+            var btnWiki = this.FindControl<Button>("BtnQuirksWiki");
+            if (btnWiki != null && !string.IsNullOrWhiteSpace(quirks.WikiUrl))
+            {
+                btnWiki.IsVisible = true;
+                btnWiki.Click += (_, _) =>
+                {
+                    try { Process.Start(new ProcessStartInfo(quirks.WikiUrl) { UseShellExecute = true }); }
+                    catch (Exception ex) { DebugWindow.Log($"[ManageGame] Failed to open wiki URL: {ex.Message}"); }
+                };
+            }
+        }
+
+        private void ApplyQuirksPreselection(GameQuirksProfile? quirks)
+        {
+            if (quirks == null) return;
+
+            // Pre-select injection DLL
+            if (!string.IsNullOrEmpty(quirks.InjectionFileName))
+            {
+                foreach (var combo in new[] { "CmbInjectionMethod", "CmbInjectionMethodCover" })
+                {
+                    var cmb = this.FindControl<ComboBox>(combo);
+                    if (cmb == null) continue;
+                    for (int i = 0; i < cmb.Items.Count; i++)
+                    {
+                        if (cmb.Items[i] is ComboBoxItem ci &&
+                            string.Equals(ci.Tag?.ToString(), quirks.InjectionFileName, StringComparison.OrdinalIgnoreCase))
+                        {
+                            cmb.SelectedIndex = i;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Pre-activate OptiPatcher (select first non-"none" version)
+            if (quirks.RecommendedComponents.Contains("OptiPatcher", StringComparer.OrdinalIgnoreCase))
+            {
+                var cmbPatcher = this.FindControl<ComboBox>("CmbOptiPatcherVersion");
+                if (cmbPatcher != null)
+                {
+                    var currentTag = (cmbPatcher.SelectedItem as ComboBoxItem)?.Tag?.ToString();
+                    if (string.IsNullOrEmpty(currentTag) || currentTag.Equals("none", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Select first non-"none" item
+                        for (int i = 1; i < cmbPatcher.Items.Count; i++)
+                        {
+                            if (cmbPatcher.Items[i] is ComboBoxItem ci &&
+                                !string.Equals(ci.Tag?.ToString(), "none", StringComparison.OrdinalIgnoreCase))
+                            {
+                                cmbPatcher.SelectedIndex = i;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         private void TrySetCoverImage(Image? image, string? coverPath)
@@ -1122,7 +1221,8 @@ namespace OptiscalerClient.Views
                                                         installNukemFG, nukemCacheDir,
                                                         optiscalerVersion: optiscalerVersion,
                                                         overrideGameDir: overrideGameDir,
-                                                        profile: selectedProfile);
+                                                        profile: selectedProfile,
+                                                        quirks: _quirks);
                     });
                 }
                 catch (Exception instEx) when ((instEx.Message.Contains("corrupt or incomplete") || instEx.Message.Contains("not found in the downloaded package")) && !retryDone)
