@@ -496,7 +496,12 @@ Ta wersja nie jest dostępna do pobrania. Sprawdź połączenie internetowe i sp
     <x:String x:Key="TxtOptiPatcherLbl">OptiPatcher</x:String>
     <x:String x:Key="TxtOptiPatcherTooltip">Wtyczka ASI dla OptiScaler, która ujawnia wejścia DLSS/DLSS-FG bez spoofingu w obsługiwanych grach. Pomaga użytkownikom Intel Arc unikać błędów D3D12 i zapobiega spadkom wydajności lub awariom spowodowanym przez spoofing Dxgi.</x:String>
     <x:String x:Key="TxtDownloadingOptiPatcher">Pobieranie OptiPatcher...</x:String>
-    <x:String x:Key="TxtInstallingOptiPatcher">Instalowanie OptiPatcher...</x:String></ResourceDictionary>
+    <x:String x:Key="TxtInstallingOptiPatcher">Instalowanie OptiPatcher...</x:String>
+
+    <!-- Game Quirks -->
+    <x:String x:Key="TxtQuirksBannerTitle">Specjalne wymagania</x:String>
+    <x:String x:Key="TxtQuirksPrereqLabel">Wymagane: </x:String>
+    <x:String x:Key="TxtQuirksViewWiki">Wyświetl stronę wiki</x:String></ResourceDictionary>
 
 
 

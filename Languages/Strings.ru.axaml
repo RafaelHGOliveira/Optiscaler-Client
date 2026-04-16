@@ -496,7 +496,12 @@
     <x:String x:Key="TxtOptiPatcherLbl">OptiPatcher</x:String>
     <x:String x:Key="TxtOptiPatcherTooltip">ASI-плагин для OptiScaler, открывающий входы DLSS/DLSS-FG без спуфинга в поддерживаемых играх. Помогает пользователям Intel Arc избежать ошибок D3D12 и предотвращает потерю производительности или краши из-за спуфинга Dxgi.</x:String>
     <x:String x:Key="TxtDownloadingOptiPatcher">Загрузка OptiPatcher...</x:String>
-    <x:String x:Key="TxtInstallingOptiPatcher">Установка OptiPatcher...</x:String></ResourceDictionary>
+    <x:String x:Key="TxtInstallingOptiPatcher">Установка OptiPatcher...</x:String>
+
+    <!-- Game Quirks -->
+    <x:String x:Key="TxtQuirksBannerTitle">Особые требования</x:String>
+    <x:String x:Key="TxtQuirksPrereqLabel">Обязательно: </x:String>
+    <x:String x:Key="TxtQuirksViewWiki">Открыть страницу wiki</x:String></ResourceDictionary>
 
 
 

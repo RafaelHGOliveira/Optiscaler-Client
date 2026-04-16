@@ -496,7 +496,12 @@
     <x:String x:Key="TxtOptiPatcherLbl">OptiPatcher</x:String>
     <x:String x:Key="TxtOptiPatcherTooltip">지원 게임에서 스푸핑 없이 DLSS/DLSS-FG 입력을 노출하는 OptiScaler용 ASI 플러그인입니다. Intel Arc 사용자의 D3D12 오류와 Dxgi 스푸핑으로 인한 성능 저하 또는 크래시를 방지합니다.</x:String>
     <x:String x:Key="TxtDownloadingOptiPatcher">OptiPatcher 다운로드 중...</x:String>
-    <x:String x:Key="TxtInstallingOptiPatcher">OptiPatcher 설치 중...</x:String></ResourceDictionary>
+    <x:String x:Key="TxtInstallingOptiPatcher">OptiPatcher 설치 중...</x:String>
+
+    <!-- Game Quirks -->
+    <x:String x:Key="TxtQuirksBannerTitle">특별한 요구사항</x:String>
+    <x:String x:Key="TxtQuirksPrereqLabel">필요: </x:String>
+    <x:String x:Key="TxtQuirksViewWiki">Wiki 페이지 보기</x:String></ResourceDictionary>
 
 
 

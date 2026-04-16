@@ -496,7 +496,12 @@ Bu sürüm indirilemez. İnternet bağlantınızı kontrol edip daha sonra tekra
     <x:String x:Key="TxtOptiPatcherLbl">OptiPatcher</x:String>
     <x:String x:Key="TxtOptiPatcherTooltip">Desteklenen oyunlarda spoofing olmadan DLSS/DLSS-FG girişlerini açığa çıkaran OptiScaler için bir ASI Eklentisi. Intel Arc kullanıcılarının D3D12 hatalarından kaçınmasına yardımcı olur ve Dxgi spoofing'in neden olduğu performans düşüşlerini veya çökmeleri önler.</x:String>
     <x:String x:Key="TxtDownloadingOptiPatcher">OptiPatcher indiriliyor...</x:String>
-    <x:String x:Key="TxtInstallingOptiPatcher">OptiPatcher yükleniyor...</x:String></ResourceDictionary>
+    <x:String x:Key="TxtInstallingOptiPatcher">OptiPatcher yükleniyor...</x:String>
+
+    <!-- Game Quirks -->
+    <x:String x:Key="TxtQuirksBannerTitle">Özel gereksinimler</x:String>
+    <x:String x:Key="TxtQuirksPrereqLabel">Gerekli: </x:String>
+    <x:String x:Key="TxtQuirksViewWiki">Wiki sayfasını görüntüle</x:String></ResourceDictionary>
 
 
 

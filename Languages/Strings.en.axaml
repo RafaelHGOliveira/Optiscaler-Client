@@ -499,7 +499,12 @@ This version is unavailable for download. Check your internet connection and try
     <x:String x:Key="TxtOptiPatcherLbl">OptiPatcher</x:String>
     <x:String x:Key="TxtOptiPatcherTooltip">An ASI Plugin for OptiScaler that exposes DLSS/DLSS-FG inputs without spoofing in supported games. Helps AMD and Intel users avoid D3D12 errors and prevents performance overhead or crashes caused by Dxgi spoofing.</x:String>
     <x:String x:Key="TxtDownloadingOptiPatcher">Downloading OptiPatcher...</x:String>
-    <x:String x:Key="TxtInstallingOptiPatcher">Installing OptiPatcher...</x:String></ResourceDictionary>
+    <x:String x:Key="TxtInstallingOptiPatcher">Installing OptiPatcher...</x:String>
+
+    <!-- Game Quirks -->
+    <x:String x:Key="TxtQuirksBannerTitle">Special requirements</x:String>
+    <x:String x:Key="TxtQuirksPrereqLabel">Required: </x:String>
+    <x:String x:Key="TxtQuirksViewWiki">View wiki page</x:String></ResourceDictionary>
 
 
 

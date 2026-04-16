@@ -496,7 +496,12 @@
     <x:String x:Key="TxtOptiPatcherLbl">OptiPatcher</x:String>
     <x:String x:Key="TxtOptiPatcherTooltip">OptiScaler 的 ASI 插件，在受支持的游戏中无需欺骗即可暴露 DLSS/DLSS-FG 输入。帮助 Intel Arc 用户避免 D3D12 错误，并防止 Dxgi 欺骗导致的性能开销或崩溃。</x:String>
     <x:String x:Key="TxtDownloadingOptiPatcher">正在下载 OptiPatcher...</x:String>
-    <x:String x:Key="TxtInstallingOptiPatcher">正在安装 OptiPatcher...</x:String></ResourceDictionary>
+    <x:String x:Key="TxtInstallingOptiPatcher">正在安装 OptiPatcher...</x:String>
+
+    <!-- Game Quirks -->
+    <x:String x:Key="TxtQuirksBannerTitle">特殊要求</x:String>
+    <x:String x:Key="TxtQuirksPrereqLabel">需要: </x:String>
+    <x:String x:Key="TxtQuirksViewWiki">查看Wiki页面</x:String></ResourceDictionary>
 
 
 
