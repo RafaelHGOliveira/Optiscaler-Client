@@ -864,7 +864,11 @@ namespace OptiscalerClient.Views
                 if (OperatingSystem.IsWindows())
                     Process.Start("explorer.exe", $"\"{dirToOpen}\"");
                 else
-                    Process.Start(new ProcessStartInfo("xdg-open", dirToOpen) { UseShellExecute = false });
+                {
+                    var psi = new ProcessStartInfo("xdg-open") { UseShellExecute = false };
+                    psi.ArgumentList.Add(dirToOpen);
+                    Process.Start(psi);
+                }
             }
             catch (Exception ex)
             {
