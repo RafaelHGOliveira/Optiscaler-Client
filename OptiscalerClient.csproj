@@ -39,6 +39,9 @@
     <None Update="assets\configs\help-pages.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="assets\configs\game-quirks.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <EmbeddedResource Include="assets\OptiScaler_example.ini" />
     <AvaloniaResource Include="assets\**" />
     <AvaloniaResource Include="Languages\**" />

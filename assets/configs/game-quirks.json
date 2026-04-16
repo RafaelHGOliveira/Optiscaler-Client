@@ -1,0 +1,18 @@
+{
+  "Version": 1,
+  "Profiles": [
+    {
+      "AppId": "1174180",
+      "NameRegex": "^Red Dead Redemption 2$",
+      "InjectionFileName": "OptiScaler.asi",
+      "RequiredPrereqs": ["UltimateAsiLoader:dinput8.dll"],
+      "RecommendedComponents": ["OptiPatcher"],
+      "RendererHint": "Dx12",
+      "IniOverrides": { "Spoofing": { "Dxgi": "false" } },
+      "SafeToRemoveOnUninstall": ["dinput8.dll"],
+      "WikiUrl": "https://github.com/optiscaler/OptiScaler/wiki/Red-Dead-Redemption-II",
+      "Notes": "Requires Ultimate ASI Loader (dinput8.dll) placed manually in the game directory. Use DirectX 12. Vulkan is problematic.",
+      "Official": false
+    }
+  ]
+}
