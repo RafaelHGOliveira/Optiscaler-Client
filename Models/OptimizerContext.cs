@@ -30,6 +30,9 @@ namespace OptiscalerClient.Models
     [JsonSerializable(typeof(List<OptiPatcherReleaseEntry>))]
     [JsonSerializable(typeof(OptiScalerProfile))]
     [JsonSerializable(typeof(List<OptiScalerProfile>))]
+    [JsonSerializable(typeof(GameQuirksBundle))]
+    [JsonSerializable(typeof(GameQuirksProfile))]
+    [JsonSerializable(typeof(List<GameQuirksProfile>))]
     [JsonSerializable(typeof(Dictionary<string, Dictionary<string, string>>))]
     [JsonSerializable(typeof(Dictionary<string, string>))]
     internal partial class OptimizerContext : JsonSerializerContext
