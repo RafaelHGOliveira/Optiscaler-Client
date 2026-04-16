@@ -88,5 +88,7 @@ namespace OptiscalerClient.Models
         public List<ManifestFileRecord> FilesCreated { get; set; } = new();
         public List<ManifestFileRecord> FilesOverwritten { get; set; } = new();
         public List<KeyFileSnapshot> PreInstallKeyFiles { get; set; } = new();
+        public string? AppliedQuirksProfile { get; set; }
+        public List<string> QuirksSafeRemovals { get; set; } = new();
     }
 }

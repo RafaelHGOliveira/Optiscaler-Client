@@ -34,7 +34,7 @@ namespace OptiscalerClient.Services
             // OptiScaler core
             "OptiScaler.ini", "OptiScaler.log", "OptiScaler.dll",
             "dxgi.dll", "winmm.dll", "d3d12.dll", "dbghelp.dll",
-            "version.dll", "wininet.dll", "winhttp.dll",
+            "version.dll", "wininet.dll", "winhttp.dll", "OptiScaler.asi",
             "nvngx.dll", "libxess.dll", "amdxcffx64.dll",
             // Fakenvapi
             "nvapi64.dll", "fakenvapi.ini", "fakenvapi.log",
@@ -56,11 +56,16 @@ namespace OptiscalerClient.Services
                                      bool installNukemFG = false, string nukemFGCachePath = "",
                                      string? optiscalerVersion = null,
                                      string? overrideGameDir = null,
-                                     OptiScalerProfile? profile = null)
+                                     OptiScalerProfile? profile = null,
+                                     GameQuirksProfile? quirks = null)
         {
             DebugWindow.Log($"[Install] Starting OptiScaler installation for game: {game.Name}");
             DebugWindow.Log($"[Install] Version: {optiscalerVersion}, Injection: {injectionDllName}");
             DebugWindow.Log($"[Install] Cache path: {cachePath}");
+
+            // Quirks-based injection override: only apply when caller hasn't explicitly chosen a non-default
+            if (quirks?.InjectionFileName != null && injectionDllName == "dxgi.dll")
+                injectionDllName = quirks.InjectionFileName;
 
             if (!Directory.Exists(cachePath))
                 throw new DirectoryNotFoundException("Updates cache directory not found. Please download OptiScaler first.");
@@ -123,6 +128,9 @@ namespace OptiscalerClient.Services
             manifest.ExpectedFinalMarkers.Add(injectionDllName);
             manifest.ExpectedFinalMarkers.Add(Path.Combine(BackupFolderName, ManifestFileName));
             manifest.AppliedProfileName = profile?.Name;
+            manifest.AppliedQuirksProfile = quirks?.AppId ?? quirks?.NameRegex;
+            if (quirks?.SafeToRemoveOnUninstall != null)
+                manifest.QuirksSafeRemovals.AddRange(quirks.SafeToRemoveOnUninstall);
             var manifestPath = Path.Combine(backupDir, ManifestFileName);
 
             // Persist immediately as in-progress so crashes can be recovered later.
@@ -262,6 +270,19 @@ namespace OptiscalerClient.Services
             else if (profile != null && profile.Name == "Default")
             {
                 DebugWindow.Log($"[Install] Using Default profile - OptiScaler will use its default configuration");
+            }
+
+            // Step 2.6: Apply quirks INI overrides (quirks win over profile)
+            if (quirks?.IniOverrides != null && quirks.IniOverrides.Count > 0)
+            {
+                foreach (var section in quirks.IniOverrides)
+                {
+                    foreach (var kv in section.Value)
+                    {
+                        ModifyOptiScalerIniSection(gameDir, section.Key, kv.Key, kv.Value);
+                    }
+                }
+                DebugWindow.Log($"[Install] Applied quirks INI overrides for profile: {quirks.AppId}");
             }
 
             // Step 3: Install Fakenvapi if requested (AMD/Intel only)
@@ -648,7 +669,7 @@ namespace OptiscalerClient.Services
             // Final unconditional sweep: remove ALL known OptiScaler artifacts.
             // This guarantees a clean game directory regardless of manifest state,
             // interrupted installs, or corrupted tracking data.
-            ForceRemoveAllArtifacts(gameDir);
+            ForceRemoveAllArtifacts(gameDir, manifest);
 
             // Last resort: compare every file in the cached OptiScaler version against
             // the game directory. If any cached file still exists in the game dir, it
@@ -959,7 +980,7 @@ namespace OptiscalerClient.Services
         /// nvngx.dll, libxess.dll), they may be deleted — the user can restore them via
         /// their game launcher's "Verify Files" feature.
         /// </summary>
-        private void ForceRemoveAllArtifacts(string gameDir)
+        private void ForceRemoveAllArtifacts(string gameDir, InstallationManifest? manifest = null)
         {
             var dirsToScan = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { gameDir };
             var phoenixDir = DetectCorrectInstallDirectory(gameDir);
@@ -978,6 +999,13 @@ namespace OptiscalerClient.Services
                     {
                         if (File.Exists(fullPath))
                         {
+                            // Never delete dinput8.dll unless quirks explicitly listed it as safe to remove
+                            if (artifact.Equals("dinput8.dll", StringComparison.OrdinalIgnoreCase) &&
+                                !(manifest?.QuirksSafeRemovals.Contains("dinput8.dll", StringComparer.OrdinalIgnoreCase) ?? false))
+                            {
+                                DebugWindow.Log($"[Uninstall][ForceClean] Skipping dinput8.dll (not in QuirksSafeRemovals)");
+                                continue;
+                            }
                             File.Delete(fullPath);
                             deletedCount++;
                             DebugWindow.Log($"[Uninstall][ForceClean] Deleted: {artifact}");
@@ -1458,6 +1486,64 @@ namespace OptiscalerClient.Services
             {
                 DebugWindow.Log($"[Install] Failed to modify OptiScaler.ini, creating new: {ex.Message}");
                 File.WriteAllText(iniPath, $"[General]\n{key}={value}\n");
+            }
+        }
+
+        private void ModifyOptiScalerIniSection(string gameDir, string section, string key, string value)
+        {
+            var iniPath = Path.Combine(gameDir, "OptiScaler.ini");
+            var sectionHeader = $"[{section}]";
+
+            if (!File.Exists(iniPath))
+            {
+                File.WriteAllText(iniPath, $"{sectionHeader}\n{key}={value}\n");
+                return;
+            }
+
+            try
+            {
+                var lines = File.ReadAllLines(iniPath).ToList();
+                bool inTargetSection = false;
+                bool keyFound = false;
+
+                for (int i = 0; i < lines.Count; i++)
+                {
+                    var line = lines[i].Trim();
+
+                    if (line.Equals(sectionHeader, StringComparison.OrdinalIgnoreCase))
+                    {
+                        inTargetSection = true;
+                        continue;
+                    }
+
+                    if (line.StartsWith("[") && inTargetSection)
+                    {
+                        if (!keyFound)
+                            lines.Insert(i, $"{key}={value}");
+                        keyFound = true;
+                        break;
+                    }
+
+                    if (inTargetSection && line.StartsWith($"{key}=", StringComparison.OrdinalIgnoreCase))
+                    {
+                        lines[i] = $"{key}={value}";
+                        keyFound = true;
+                        break;
+                    }
+                }
+
+                if (!keyFound)
+                {
+                    if (!inTargetSection)
+                        lines.Add($"\n{sectionHeader}");
+                    lines.Add($"{key}={value}");
+                }
+
+                File.WriteAllText(iniPath, string.Join(Environment.NewLine, lines));
+            }
+            catch (Exception ex)
+            {
+                DebugWindow.Log($"[Install] Warning: Failed to modify OptiScaler.ini [{section}] {key}: {ex.Message}");
             }
         }
     }
