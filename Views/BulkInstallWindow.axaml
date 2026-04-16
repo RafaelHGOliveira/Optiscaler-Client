@@ -205,6 +205,9 @@
                                         <ComboBoxItem Content="version.dll"  Tag="version.dll"/>
                                         <ComboBoxItem Content="wininet.dll"  Tag="wininet.dll"/>
                                         <ComboBoxItem Content="winhttp.dll"  Tag="winhttp.dll"/>
+                                        <ComboBoxItem Content="OptiScaler.asi"    Tag="OptiScaler.asi"/>
+                                        <ComboBoxItem Content="dlss-enabler.dll"  Tag="dlss-enabler.dll"/>
+                                        <ComboBoxItem Content="dinput8.dll"       Tag="dinput8.dll"/>
                                     </ComboBox>
                                 </StackPanel>
 

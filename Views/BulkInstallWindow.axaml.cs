@@ -412,6 +412,8 @@ public partial class BulkInstallWindow : Window
         int totalGames = selectedGames.Count;
         int currentGame = 0;
 
+        var quirksService = new GameQuirksService();
+
         foreach (var gameItem in selectedGames)
         {
             currentGame++;
@@ -424,6 +426,10 @@ public partial class BulkInstallWindow : Window
 
             if (progressBar != null)
                 progressBar.Value = (currentGame - 1) * 100.0 / totalGames;
+
+            var gameQuirks = quirksService.TryGetQuirks(gameItem.Game);
+            if (gameQuirks?.InjectionFileName != null && injectionMethod == "dxgi.dll")
+                DebugWindow.Log($"[BulkInstall] Quirks override for {gameItem.Name}: injection={gameQuirks.InjectionFileName}");
 
             try
             {
@@ -443,7 +449,8 @@ public partial class BulkInstallWindow : Window
                         installNukemFG,
                         nukemCacheDir,
                         optiscalerVersion: version,
-                        profile: selectedProfile
+                        profile: selectedProfile,
+                        quirks: gameQuirks
                     );
                 });
 
