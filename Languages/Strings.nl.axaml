@@ -196,6 +196,8 @@
     <x:String x:Key="TxtCustomFolders">Aangepaste mappen</x:String>
     <x:String x:Key="TxtAddFolder">+ Map toevoegen</x:String>
     <x:String x:Key="TxtNoCustomFolders">Nog geen aangepaste mappen toegevoegd.</x:String>
+    <x:String x:Key="TxtFilterOptions">Filteropties</x:String>
+    <x:String x:Key="TxtShowNonGameApps">Niet-spellen weergeven (tools, runtimes, benchmarks)</x:String>
     <x:String x:Key="TxtRemove">Verwijderen</x:String>
     <x:String x:Key="TxtSave">Opslaan</x:String>
     <x:String x:Key="TxtScanSources">Scanbronnen</x:String>

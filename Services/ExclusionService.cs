@@ -84,6 +84,9 @@ public class ExclusionService
     private static List<ScanExclusion> DefaultExclusions() =>
     [
         new() { Name = "Wallpaper Engine",                    PathSegment = "wallpaper_engine"   },
-        new() { Name = "Steamworks Common Redistributables",  PathSegment = "Steamworks Shared"  }
+        new() { Name = "Steamworks Common Redistributables",  PathSegment = "Steamworks Shared"  },
+        new() { Name = "SteamVR",                             PathSegment = "SteamVR"            },
+        new() { Name = "Steam Linux Runtime",                 PathSegment = "SteamLinuxRuntime"  },
+        new() { Name = "Proton",                              PathSegment = "Proton "            }
     ];
 }

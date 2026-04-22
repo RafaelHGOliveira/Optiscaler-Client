@@ -57,6 +57,9 @@ public class Game
     public string? OptiscalerVersion { get; set; }
     public string? Fsr4ExtraVersion { get; set; }
 
+    // Set during scan analysis — not persisted
+    public bool HasGraphicsRuntime { get; set; } = false;
+
     // UI customization (not set by scanner)
     public bool IsHidden { get; set; } = false;
     public int DisplayOrder { get; set; } = 0;

@@ -42,6 +42,13 @@ public class GameAnalyzerService
     };
     private static readonly string[] _xessNames = new[] { "libxess.dll" };
 
+    private static readonly HashSet<string> _graphicsRuntimeNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "d3d9.dll", "d3d10.dll", "d3d11.dll", "d3d12.dll",
+        "dxgi.dll", "vulkan-1.dll", "opengl32.dll",
+        "UnityPlayer.dll", "GameAssembly.dll"
+    };
+
     private static readonly HashSet<string> _allTargetFileNames;
     private static readonly string _diskCachePath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
@@ -114,6 +121,7 @@ public class GameAnalyzerService
         game.XessPath = null;
         game.IsOptiscalerInstalled = false;
         game.OptiscalerVersion = null; // Will be repopulated from manifest or log
+        game.HasGraphicsRuntime = false;
 
         HashSet<string> ignoredFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var blockHeuristicFallbackDetection = false;
@@ -122,7 +130,8 @@ public class GameAnalyzerService
         {
             // ── Single-pass file collection ──────────────────────────────────────────
             // Traverse the game directory once and classify all relevant files by name.
-            var collectedFiles = CollectRelevantFiles(game.InstallPath);
+            var (collectedFiles, hasGraphicsRuntime) = CollectRelevantFiles(game.InstallPath);
+            game.HasGraphicsRuntime = hasGraphicsRuntime;
 
             // ── Detect OptiScaler ──────────────────────────────────────────────────
             // Do this first so we can ignore its installed files when looking for native DLLs
@@ -341,9 +350,10 @@ public class GameAnalyzerService
             updateAction(game, bestPath, bestVerStr);
     }
 
-    private static Dictionary<string, List<string>> CollectRelevantFiles(string path)
+    private static (Dictionary<string, List<string>> files, bool hasGraphicsRuntime) CollectRelevantFiles(string path)
     {
         var result = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+        var hasRuntime = false;
         var options = new EnumerationOptions
         {
             RecurseSubdirectories = true,
@@ -365,6 +375,14 @@ public class GameAnalyzerService
                     }
                     list.Add(file);
                 }
+
+                if (!hasRuntime &&
+                    (_graphicsRuntimeNames.Contains(name) ||
+                     name.EndsWith("-Win64-Shipping.exe", StringComparison.OrdinalIgnoreCase) ||
+                     name.EndsWith("-Win32-Shipping.exe", StringComparison.OrdinalIgnoreCase)))
+                {
+                    hasRuntime = true;
+                }
             }
         }
         catch (Exception ex)
@@ -372,7 +390,7 @@ public class GameAnalyzerService
             DebugWindow.Log($"[Analyzer] Error enumerating files in '{path}': {ex.Message}");
         }
 
-        return result;
+        return (result, hasRuntime);
     }
 
     public static void LoadCacheFromDisk()
@@ -553,6 +571,7 @@ public class GameAnalyzerService
         public string? XessPath { get; set; }
         public bool IsOptiscalerInstalled { get; set; }
         public string? OptiscalerVersion { get; set; }
+        public bool HasGraphicsRuntime { get; set; }
 
         public static AnalysisCacheEntry FromGame(Game game, DateTime directoryWriteStampUtc)
         {
@@ -568,7 +587,8 @@ public class GameAnalyzerService
                 XessVersion = game.XessVersion,
                 XessPath = game.XessPath,
                 IsOptiscalerInstalled = game.IsOptiscalerInstalled,
-                OptiscalerVersion = game.OptiscalerVersion
+                OptiscalerVersion = game.OptiscalerVersion,
+                HasGraphicsRuntime = game.HasGraphicsRuntime
             };
         }
 
@@ -584,6 +604,7 @@ public class GameAnalyzerService
             game.XessPath = XessPath;
             game.IsOptiscalerInstalled = IsOptiscalerInstalled;
             game.OptiscalerVersion = OptiscalerVersion;
+            game.HasGraphicsRuntime = HasGraphicsRuntime;
         }
     }
 }
