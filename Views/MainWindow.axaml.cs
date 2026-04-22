@@ -3218,12 +3218,6 @@ namespace OptiscalerClient.Views
             {
                 LogToFile("[GetHelpGpuInfo] Starting...");
 
-                if (!OperatingSystem.IsWindows())
-                {
-                    LogToFile("[GetHelpGpuInfo] Not Windows");
-                    return ("Not available", true);
-                }
-
                 if (_gpuService == null)
                 {
                     LogToFile("[GetHelpGpuInfo] _gpuService is null");
