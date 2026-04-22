@@ -39,6 +39,18 @@
         {
             "Name": "GameSave",
             "PathSegment": "GameSave"
+        },
+        {
+            "Name": "SteamVR",
+            "PathSegment": "SteamVR"
+        },
+        {
+            "Name": "Steam Linux Runtime",
+            "PathSegment": "SteamLinuxRuntime"
+        },
+        {
+            "Name": "Proton",
+            "PathSegment": "Proton "
         }
     ],
     "SteamGridDBApiKey": "",
